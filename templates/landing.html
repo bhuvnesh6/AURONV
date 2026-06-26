@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}AURON — Fitness Accountability Platform{% endblock %}
+{% block public_content %}
+<div class="landing">
+  <nav class="landing-nav">
+    <span class="logo-text">AURON</span>
+    <div class="landing-nav-links">
+      <a href="/login" class="btn btn-ghost">Login</a>
+      <a href="/signup/user" class="btn btn-gold">Get Started</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-badge">Accountability Platform</div>
+    <h1 class="hero-title">
+      Build the habit.<br />
+      <span class="gold">Track the score.</span><br />
+      Own the streak.
+    </h1>
+    <p class="hero-sub">AURON turns every workout, meal, and night's sleep into a single accountability score — then ranks you against the world.</p>
+    <div class="hero-cta">
+      <a href="/signup/user" class="btn btn-gold btn-lg">Join as Athlete</a>
+      <a href="/signup/trainer" class="btn btn-outline btn-lg">Join as Trainer</a>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h3>AURON Score</h3>
+      <p>A single 0-100 score computed daily from your workout, protein, sleep, water, and steps.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔥</div>
+      <h3>Streak System</h3>
+      <p>Stay consistent. Hit 80+ every day to build your streak. Longest streak earns elite status.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🏆</div>
+      <h3>Global Leaderboard</h3>
+      <p>Compete globally, weekly, and monthly. Rise from Iron to Elite with every log.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Trainer Dashboard</h3>
+      <p>Trainers monitor compliance, flag at-risk clients, assign programs, and message teams.</p>
+    </div>
+  </section>
+
+  <footer class="landing-footer">
+    <span class="logo-text">AURON</span>
+    <p>Built for athletes who refuse to be average.</p>
+  </footer>
+</div>
+{% endblock %}

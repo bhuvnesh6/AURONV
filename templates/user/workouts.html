@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Workouts — AURON{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Workouts</h1>
+  <button class="btn btn-gold btn-sm" onclick="openModal('newWorkoutModal')">+ New Workout</button>
+</div>
+
+<div class="workout-list">
+  {% for w in workouts %}
+  <div class="card workout-card">
+    <div class="workout-card-header">
+      <div>
+        <h3 class="workout-name">{{ w.name }}</h3>
+        <span class="workout-date">{{ w.date }} · {{ w.duration_min }} min</span>
+      </div>
+      <div class="workout-volume">
+        <span class="volume-num">{{ "{:,.0f}".format(w.total_volume) }}</span>
+        <span class="volume-label">kg vol</span>
+      </div>
+    </div>
+    {% if w.exercises %}
+    <div class="exercise-list">
+      {% for ex in w.exercises %}
+      <div class="exercise-row">
+        <span class="ex-name">{{ ex.name }}</span>
+        <span class="ex-detail">{{ ex.sets }}×{{ ex.reps }} @ {{ ex.weight_kg }}kg</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if w.notes %}
+    <p class="workout-notes">{{ w.notes }}</p>
+    {% endif %}
+    <button class="btn btn-sm btn-ghost" onclick="openAddEx('{{ w._id }}')">+ Add Exercise</button>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">💪</div>
+    <h3>No workouts yet</h3>
+    <p>Log your first workout to start earning points.</p>
+    <button class="btn btn-gold" onclick="openModal('newWorkoutModal')">Log Workout</button>
+  </div>
+  {% endfor %}
+</div>
+
+{# ── New Workout Modal ── #}
+<div class="modal" id="newWorkoutModal">
+  <div class="modal-card">
+    <h3>New Workout</h3>
+    <form method="POST" action="/user/workouts">
+      <input type="hidden" name="action" value="create_workout" />
+      <div class="form-group">
+        <label>Workout Name</label>
+        <input type="text" name="workout_name" placeholder="Push Day, Leg Day..." required />
+      </div>
+      <div class="form-group">
+        <label>Duration (minutes)</label>
+        <input type="number" name="duration" placeholder="60" min="1" />
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea name="notes" placeholder="How did it feel?" rows="2"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('newWorkoutModal')">Cancel</button>
+        <button type="submit" class="btn btn-gold">Log Workout</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Add Exercise Modal ── #}
+<div class="modal" id="addExModal">
+  <div class="modal-card">
+    <h3>Add Exercise</h3>
+    <form method="POST" action="/user/workouts">
+      <input type="hidden" name="action" value="add_exercise" />
+      <input type="hidden" name="workout_id" id="addExWorkoutId" />
+      <div class="form-grid-2">
+        <div class="form-group form-full">
+          <label>Exercise Name</label>
+          <input type="text" name="ex_name" placeholder="Bench Press" required />
+        </div>
+        <div class="form-group">
+          <label>Sets</label>
+          <input type="number" name="sets" placeholder="4" min="1" />
+        </div>
+        <div class="form-group">
+          <label>Reps</label>
+          <input type="number" name="reps" placeholder="8" min="1" />
+        </div>
+        <div class="form-group">
+          <label>Weight (kg)</label>
+          <input type="number" name="weight" placeholder="80" step="0.5" min="0" />
+        </div>
+        <div class="form-group">
+          <label>Rest (seconds)</label>
+          <input type="number" name="rest" placeholder="90" min="0" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('addExModal')">Cancel</button>
+        <button type="submit" class="btn btn-gold">Add</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openAddEx(wid) {
+  document.getElementById('addExWorkoutId').value = wid;
+  openModal('addExModal');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}{{ client.username }} — AURON{% endblock %}
+{% block content %}
+<div class="page-header">
+  <a href="/trainer/clients" class="back-btn">← Clients</a>
+  <h1 class="page-title">{{ client.username }}</h1>
+</div>
+
+<div class="profile-hero">
+  <div class="avatar-large">{{ client.username[0] | upper }}</div>
+  <div class="profile-info">
+    <div class="rank-badge rank-{{ rank | lower }}">{{ rank }}</div>
+    <p class="profile-goal">{{ client.goal | replace('_', ' ') | title if client.goal else 'No goal set' }}</p>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-box">
+    <span class="stat-big">{{ score }}</span>
+    <span class="stat-small">Today's Score</span>
+  </div>
+  <div class="stat-box">
+    <span class="stat-big">{{ streak.current }}🔥</span>
+    <span class="stat-small">Streak</span>
+  </div>
+  <div class="stat-box">
+    <span class="stat-big">{{ streak.longest }}</span>
+    <span class="stat-small">Best Streak</span>
+  </div>
+</div>
+
+<div class="card">
+  <h3 class="card-title">7-Day Compliance</h3>
+  <div class="compliance-bars">
+    <div class="comp-row">
+      <span class="comp-label">Workout</span>
+      <div class="comp-bar"><div style="width:{{ compliance.workout }}%"></div></div>
+      <span class="comp-pct">{{ compliance.workout }}%</span>
+    </div>
+    <div class="comp-row">
+      <span class="comp-label">Protein</span>
+      <div class="comp-bar"><div style="width:{{ compliance.protein }}%"></div></div>
+      <span class="comp-pct">{{ compliance.protein }}%</span>
+    </div>
+    <div class="comp-row">
+      <span class="comp-label">Water</span>
+      <div class="comp-bar"><div style="width:{{ compliance.water }}%"></div></div>
+      <span class="comp-pct">{{ compliance.water }}%</span>
+    </div>
+    <div class="comp-row">
+      <span class="comp-label">Sleep</span>
+      <div class="comp-bar"><div style="width:{{ compliance.sleep }}%"></div></div>
+      <span class="comp-pct">{{ compliance.sleep }}%</span>
+    </div>
+    <div class="comp-row">
+      <span class="comp-label">Steps</span>
+      <div class="comp-bar"><div style="width:{{ compliance.steps }}%"></div></div>
+      <span class="comp-pct">{{ compliance.steps }}%</span>
+    </div>
+  </div>
+</div>
+
+{% if workouts %}
+<div class="card">
+  <h3 class="card-title">Recent Workouts</h3>
+  {% for w in workouts %}
+  <div class="history-row">
+    <span class="history-date">{{ w.date }}</span>
+    <span class="history-val">{{ w.name }}</span>
+    <span class="history-cals">{{ w.duration_min }} min</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if progress %}
+<div class="card">
+  <h3 class="card-title">Progress Photos</h3>
+  <div class="photo-grid">
+    {% for p in progress %}
+    {% if p.photo_url %}
+    <div class="photo-item">
+      <img src="{{ p.photo_url }}" alt="Progress" />
+      <span class="photo-date">{{ p.date }}</span>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

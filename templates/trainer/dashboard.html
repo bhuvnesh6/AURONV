@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Trainer Dashboard — AURON{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-sub">{{ trainer.business_name or current_user.username }}</p>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-box">
+    <span class="stat-big">{{ stats.active_clients }}</span>
+    <span class="stat-small">Active Clients</span>
+  </div>
+  <div class="stat-box">
+    <span class="stat-big">{{ stats.avg_score }}</span>
+    <span class="stat-small">Team Avg Score</span>
+  </div>
+  <div class="stat-box">
+    <span class="stat-big stat-warn">{{ stats.at_risk | length }}</span>
+    <span class="stat-small">At Risk</span>
+  </div>
+</div>
+
+{% if stats.at_risk %}
+<div class="card card-warn">
+  <h3 class="card-title">⚠️ At Risk Clients</h3>
+  {% for c in stats.at_risk %}
+  <div class="client-row">
+    <div class="client-avatar">{{ c.username[0] | upper }}</div>
+    <div class="client-info">
+      <span class="client-name">{{ c.username }}</span>
+      <span class="client-score score-low">Score: {{ c.today_score }}</span>
+    </div>
+    <a href="/trainer/clients/{{ c._id }}" class="btn btn-sm btn-ghost">View</a>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="card">
+  <h3 class="card-title">🏆 Top Performers</h3>
+  {% for c in stats.top_performers %}
+  <div class="client-row">
+    <div class="client-avatar">{{ c.username[0] | upper }}</div>
+    <div class="client-info">
+      <span class="client-name">{{ c.username }}</span>
+      <span class="client-rank rank-{{ c.rank | lower }}">{{ c.rank }}</span>
+    </div>
+    <span class="lb-score-num">{{ c.today_score }}</span>
+  </div>
+  {% else %}
+  <p class="text-muted">No clients added yet.</p>
+  {% endfor %}
+</div>
+
+{% if clients %}
+<div class="card">
+  <div class="card-title-row">
+    <h3 class="card-title">All Clients</h3>
+    <a href="/trainer/clients" class="link-sm">View all →</a>
+  </div>
+  {% for c in clients[:5] %}
+  <div class="client-row">
+    <div class="client-avatar">{{ c.username[0] | upper }}</div>
+    <div class="client-info">
+      <span class="client-name">{{ c.username }}</span>
+    </div>
+    <span class="lb-score-num">{{ c.today_score }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

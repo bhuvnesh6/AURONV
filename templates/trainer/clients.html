@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Clients — AURON{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Clients</h1>
+  <button class="btn btn-gold btn-sm" onclick="openModal('addClientModal')">+ Add Client</button>
+</div>
+
+{% if clients %}
+<div class="client-list">
+  {% for c in clients %}
+  <div class="card client-card">
+    <div class="client-card-header">
+      <div class="client-avatar-lg">{{ c.username[0] | upper }}</div>
+      <div class="client-card-info">
+        <h3 class="client-name-lg">{{ c.username }}</h3>
+        <span class="client-rank rank-{{ c.rank | lower }}">{{ c.rank }}</span>
+      </div>
+      <div class="client-score-circle">
+        <span>{{ c.today_score }}</span>
+      </div>
+    </div>
+    <div class="compliance-bars">
+      <div class="comp-row">
+        <span class="comp-label">Workout</span>
+        <div class="comp-bar"><div style="width:{{ c.compliance.workout }}%"></div></div>
+        <span class="comp-pct">{{ c.compliance.workout }}%</span>
+      </div>
+      <div class="comp-row">
+        <span class="comp-label">Protein</span>
+        <div class="comp-bar"><div style="width:{{ c.compliance.protein }}%"></div></div>
+        <span class="comp-pct">{{ c.compliance.protein }}%</span>
+      </div>
+      <div class="comp-row">
+        <span class="comp-label">Water</span>
+        <div class="comp-bar"><div style="width:{{ c.compliance.water }}%"></div></div>
+        <span class="comp-pct">{{ c.compliance.water }}%</span>
+      </div>
+      <div class="comp-row">
+        <span class="comp-label">Sleep</span>
+        <div class="comp-bar"><div style="width:{{ c.compliance.sleep }}%"></div></div>
+        <span class="comp-pct">{{ c.compliance.sleep }}%</span>
+      </div>
+      <div class="comp-row">
+        <span class="comp-label">Steps</span>
+        <div class="comp-bar"><div style="width:{{ c.compliance.steps }}%"></div></div>
+        <span class="comp-pct">{{ c.compliance.steps }}%</span>
+      </div>
+    </div>
+    <div class="client-card-footer">
+      <span class="streak-tag">🔥 {{ c.streak }} day streak</span>
+      <div class="client-actions">
+        <a href="/trainer/clients/{{ c._id }}" class="btn btn-sm btn-ghost">View</a>
+        <form method="POST" action="/trainer/clients/remove/{{ c._id }}" style="display:inline">
+          <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Remove this client?')">Remove</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">👥</div>
+  <h3>No clients yet</h3>
+  <p>Add athletes by their username to start tracking their progress.</p>
+  <button class="btn btn-gold" onclick="openModal('addClientModal')">Add Client</button>
+</div>
+{% endif %}
+
+<div class="modal" id="addClientModal">
+  <div class="modal-card">
+    <h3>Add Client</h3>
+    <form method="POST" action="/trainer/clients/add">
+      <div class="form-group">
+        <label>Athlete Username</label>
+        <input type="text" name="username" placeholder="athlete_username" required />
+        <span class="form-hint">The athlete must already have an AURON account.</span>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('addClientModal')">Cancel</button>
+        <button type="submit" class="btn btn-gold">Add Client</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Timeline — AURON{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Progress Timeline</h1>
+  <button class="btn btn-gold btn-sm" onclick="openModal('addEntryModal')">+ Check-in</button>
+</div>
+
+{% if entries %}
+<div class="timeline">
+  {% for entry in entries %}
+  <div class="timeline-item">
+    <div class="timeline-dot"></div>
+    <div class="card timeline-card">
+      <div class="timeline-date">{{ entry.date }}</div>
+      {% if entry.photo_url %}
+      <img src="{{ entry.photo_url }}" alt="Progress photo" class="timeline-photo" />
+      {% endif %}
+      <div class="metrics-grid">
+        {% if entry.weight %}<div class="metric"><span class="metric-val">{{ entry.weight }}</span><span class="metric-lbl">kg</span></div>{% endif %}
+        {% if entry.body_fat %}<div class="metric"><span class="metric-val">{{ entry.body_fat }}</span><span class="metric-lbl">% BF</span></div>{% endif %}
+        {% if entry.bench_pr %}<div class="metric"><span class="metric-val">{{ entry.bench_pr }}</span><span class="metric-lbl">Bench PR</span></div>{% endif %}
+        {% if entry.squat_pr %}<div class="metric"><span class="metric-val">{{ entry.squat_pr }}</span><span class="metric-lbl">Squat PR</span></div>{% endif %}
+        {% if entry.deadlift_pr %}<div class="metric"><span class="metric-val">{{ entry.deadlift_pr }}</span><span class="metric-lbl">Deadlift PR</span></div>{% endif %}
+        {% if entry.pushups %}<div class="metric"><span class="metric-val">{{ entry.pushups }}</span><span class="metric-lbl">Pushups</span></div>{% endif %}
+        {% if entry.pullups %}<div class="metric"><span class="metric-val">{{ entry.pullups }}</span><span class="metric-lbl">Pullups</span></div>{% endif %}
+      </div>
+      {% if entry.notes %}
+      <p class="timeline-notes">{{ entry.notes }}</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">📸</div>
+  <h3>No check-ins yet</h3>
+  <p>Track your first progress check-in to see your transformation.</p>
+  <button class="btn btn-gold" onclick="openModal('addEntryModal')">Add Check-in</button>
+</div>
+{% endif %}
+
+<div class="modal" id="addEntryModal">
+  <div class="modal-card">
+    <h3>Progress Check-in</h3>
+    <form method="POST" action="/user/timeline" enctype="multipart/form-data">
+      <div class="form-group">
+        <label>Progress Photo</label>
+        <input type="file" name="photo" accept="image/*" />
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Weight (kg)</label>
+          <input type="number" name="weight" step="0.1" placeholder="75.5" />
+        </div>
+        <div class="form-group">
+          <label>Body Fat %</label>
+          <input type="number" name="body_fat" step="0.1" placeholder="18" />
+        </div>
+        <div class="form-group">
+          <label>Bench PR (kg)</label>
+          <input type="number" name="bench_pr" step="0.5" placeholder="100" />
+        </div>
+        <div class="form-group">
+          <label>Squat PR (kg)</label>
+          <input type="number" name="squat_pr" step="0.5" placeholder="140" />
+        </div>
+        <div class="form-group">
+          <label>Deadlift PR (kg)</label>
+          <input type="number" name="deadlift_pr" step="0.5" placeholder="180" />
+        </div>
+        <div class="form-group">
+          <label>Pushups (max)</label>
+          <input type="number" name="pushups" placeholder="30" />
+        </div>
+        <div class="form-group">
+          <label>Pullups (max)</label>
+          <input type="number" name="pullups" placeholder="10" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea name="notes" rows="2" placeholder="How are you feeling?"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('addEntryModal')">Cancel</button>
+        <button type="submit" class="btn btn-gold">Save Check-in</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

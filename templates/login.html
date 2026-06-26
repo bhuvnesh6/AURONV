@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Login — AURON{% endblock %}
+{% block public_content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <span class="logo-text">AURON</span>
+    </div>
+    <h2 class="auth-title">Welcome back</h2>
+    <p class="auth-sub">Sign in to your account</p>
+
+    <form method="POST" action="/login" class="auth-form">
+      <div class="role-toggle" id="roleToggle">
+        <button type="button" class="role-btn active" data-role="user" onclick="setRole('user')">Athlete</button>
+        <button type="button" class="role-btn" data-role="trainer" onclick="setRole('trainer')">Trainer</button>
+      </div>
+      <input type="hidden" name="role" id="roleInput" value="user" />
+
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" name="email" required placeholder="your@email.com" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" name="password" required placeholder="••••••••" />
+      </div>
+      <div class="form-row-space">
+        <label class="checkbox-label">
+          <input type="checkbox" name="remember_me" />
+          Remember me
+        </label>
+        <a href="#" class="forgot-link">Forgot password?</a>
+      </div>
+      <button type="submit" class="btn btn-gold btn-block">Sign In</button>
+    </form>
+
+    <p class="auth-footer">Don't have an account?
+      <a href="/signup/user">Join as Athlete</a> or
+      <a href="/signup/trainer">Join as Trainer</a>
+    </p>
+  </div>
+</div>
+<script>
+function setRole(role) {
+  document.getElementById('roleInput').value = role;
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-role="${role}"]`).classList.add('active');
+}
+</script>
+{% endblock %}

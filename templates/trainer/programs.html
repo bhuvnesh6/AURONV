@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Programs — AURON{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Programs</h1>
+  <button class="btn btn-gold btn-sm" onclick="openModal('newProgramModal')">+ New Program</button>
+</div>
+
+{% if programs %}
+<div class="program-list">
+  {% for p in programs %}
+  <div class="card program-card">
+    <div class="program-header">
+      <div>
+        <h3 class="program-name">{{ p.name }}</h3>
+        <p class="program-desc">{{ p.description or 'No description' }}</p>
+      </div>
+      <button class="btn btn-sm btn-ghost" onclick="openAssign('{{ p._id }}')">Assign</button>
+    </div>
+    <div class="program-meta">
+      <span>Created {{ p.created_at.strftime('%b %d, %Y') if p.created_at else '' }}</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">📋</div>
+  <h3>No programs yet</h3>
+  <p>Create training programs to assign to your clients.</p>
+  <button class="btn btn-gold" onclick="openModal('newProgramModal')">Create Program</button>
+</div>
+{% endif %}
+
+<div class="modal" id="newProgramModal">
+  <div class="modal-card">
+    <h3>New Program</h3>
+    <form method="POST" action="/trainer/programs">
+      <div class="form-group">
+        <label>Program Name</label>
+        <input type="text" name="name" placeholder="12-Week Hypertrophy" required />
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea name="description" rows="3" placeholder="Program overview..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('newProgramModal')">Cancel</button>
+        <button type="submit" class="btn btn-gold">Create</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="assignModal">
+  <div class="modal-card">
+    <h3>Assign Program</h3>
+    <form method="POST" id="assignForm">
+      <div class="form-group">
+        <label>Select Clients</label>
+        <div class="checkbox-list" id="clientCheckboxes">
+          {# Populated by JS #}
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('assignModal')">Cancel</button>
+        <button type="submit" class="btn btn-gold">Assign</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const clientData = {{ clients_json | safe if clients_json is defined else '[]' }};
+function openAssign(pid) {
+  document.getElementById('assignForm').action = '/trainer/programs/' + pid + '/assign';
+  openModal('assignModal');
+}
+</script>
+{% endblock %}

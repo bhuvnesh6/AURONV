@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}Profile — AURON{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Profile</h1>
+</div>
+
+{# ── Avatar Section ── #}
+<div class="profile-hero">
+  <div class="avatar-upload-wrap" id="avatarWrap">
+
+    {# Avatar display #}
+    <div class="avatar-ring" id="avatarRing">
+      {% if user.avatar_url %}
+        <img src="{{ user.avatar_url }}" alt="{{ user.username }}" class="avatar-img" id="avatarImg" />
+      {% else %}
+        <div class="avatar-initials" id="avatarInitials">{{ user.username[0] | upper }}</div>
+      {% endif %}
+
+      {# Camera overlay trigger #}
+      <label for="avatarInput" class="avatar-overlay" title="Change photo">
+        <svg viewBox="0 0 24 24" width="22" height="22">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+      </label>
+    </div>
+
+    {# Hidden file input — submits instantly via JS #}
+    <input type="file" id="avatarInput" name="avatar" accept="image/jpeg,image/png,image/webp"
+           style="display:none" />
+
+    {# Upload form — submitted programmatically #}
+    <form id="avatarForm" method="POST" action="/user/profile/avatar" enctype="multipart/form-data" style="display:none">
+      <input type="file" name="avatar" id="avatarFormFile" />
+    </form>
+
+    {# Name + rank below avatar #}
+    <div class="avatar-meta">
+      <h2 class="profile-name">{{ user.username }}</h2>
+      <span class="profile-email">{{ user.email }}</span>
+      <div class="rank-badge rank-{{ rank | lower }}" style="margin-top:.5rem">{{ rank }}</div>
+    </div>
+
+    {# Remove photo link — only shown if photo exists #}
+    {% if user.avatar_url %}
+    <form method="POST" action="/user/profile/avatar/remove" style="margin-top:.5rem">
+      <button type="submit" class="btn-text-danger"
+              onclick="return confirm('Remove your profile photo?')">Remove photo</button>
+    </form>
+    {% endif %}
+
+  </div>
+
+  {# Upload progress overlay #}
+  <div class="avatar-upload-progress" id="uploadProgress" style="display:none">
+    <div class="upload-spinner"></div>
+    <span>Uploading…</span>
+  </div>
+</div>
+
+{# ── Stats ── #}
+<div class="stats-row">
+  <div class="stat-box">
+    <span class="stat-big">{{ score }}</span>
+    <span class="stat-small">AURON Score</span>
+  </div>
+  <div class="stat-box">
+    <span class="stat-big">{{ streak.current }}🔥</span>
+    <span class="stat-small">Current Streak</span>
+  </div>
+  <div class="stat-box">
+    <span class="stat-big">{{ streak.longest }}</span>
+    <span class="stat-small">Best Streak</span>
+  </div>
+</div>
+
+{# ── Goals & Personal Info ── #}
+<div class="card">
+  <h3 class="card-title">Daily Goals</h3>
+  <form method="POST" action="/user/profile">
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label>Protein Goal (g)</label>
+        <input type="number" name="protein_goal" value="{{ user.protein_goal or 150 }}" min="50" max="500" />
+      </div>
+      <div class="form-group">
+        <label>Water Goal (ml)</label>
+        <input type="number" name="water_goal" value="{{ user.water_goal or 2500 }}" min="500" max="6000" step="250" />
+      </div>
+      <div class="form-group">
+        <label>Sleep Goal (hours)</label>
+        <input type="number" name="sleep_goal" value="{{ user.sleep_goal or 7 }}" min="4" max="12" step="0.5" />
+      </div>
+      <div class="form-group">
+        <label>Steps Goal</label>
+        <input type="number" name="steps_goal" value="{{ user.steps_goal or 8000 }}" min="1000" max="30000" step="500" />
+      </div>
+      <div class="form-group">
+        <label>Fitness Goal</label>
+        <select name="goal">
+          <option value="lose_fat"      {% if user.goal == 'lose_fat' %}selected{% endif %}>Lose Fat</option>
+          <option value="build_muscle"  {% if user.goal == 'build_muscle' %}selected{% endif %}>Build Muscle</option>
+          <option value="maintain"      {% if user.goal == 'maintain' %}selected{% endif %}>Maintain</option>
+          <option value="performance"   {% if user.goal == 'performance' %}selected{% endif %}>Performance</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Weight (kg)</label>
+        <input type="number" name="weight" value="{{ user.weight or '' }}" step="0.1" placeholder="75" />
+      </div>
+      <div class="form-group">
+        <label>Height (cm)</label>
+        <input type="number" name="height" value="{{ user.height or '' }}" placeholder="175" />
+      </div>
+    </div>
+    <button type="submit" class="btn btn-gold" style="margin-top:1rem">Save Changes</button>
+  </form>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ── Avatar upload — instant on file pick ── */
+const avatarInput    = document.getElementById('avatarInput');
+const avatarForm     = document.getElementById('avatarForm');
+const avatarFormFile = document.getElementById('avatarFormFile');
+const avatarImg      = document.getElementById('avatarImg');
+const avatarInitials = document.getElementById('avatarInitials');
+const uploadProgress = document.getElementById('uploadProgress');
+const avatarRing     = document.getElementById('avatarRing');
+
+avatarInput.addEventListener('change', function () {
+  const file = this.files[0];
+  if (!file) return;
+
+  // 5 MB client-side guard
+  if (file.size > 5 * 1024 * 1024) {
+    alert('File is too large. Maximum size is 5 MB.');
+    this.value = '';
+    return;
+  }
+
+  // Instant preview before upload
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    if (avatarImg) {
+      avatarImg.src = e.target.result;
+    } else if (avatarInitials) {
+      // Replace initials div with an img
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.className = 'avatar-img';
+      img.id = 'avatarImg';
+      avatarInitials.replaceWith(img);
+    }
+    avatarRing.classList.add('avatar-uploading');
+  };
+  reader.readAsDataURL(file);
+
+  // Show progress overlay
+  uploadProgress.style.display = 'flex';
+
+  // Transfer file to the real hidden form and submit
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  avatarFormFile.files = dt.files;
+  avatarForm.submit();
+});
+</script>
+{% endblock %}

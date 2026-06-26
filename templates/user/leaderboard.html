@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard — AURON{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Leaderboard</h1>
+</div>
+
+<div class="filter-row">
+  <a href="?period=daily&tab={{ tab }}" class="filter-btn {% if period == 'daily' %}active{% endif %}">Today</a>
+  <a href="?period=weekly&tab={{ tab }}" class="filter-btn {% if period == 'weekly' %}active{% endif %}">This Week</a>
+</div>
+
+{% if entries %}
+<div class="leaderboard">
+  {% for e in entries %}
+  <div class="lb-row {% if loop.index <= 3 %}lb-top{% endif %}">
+    <div class="lb-rank">
+      {% if loop.index == 1 %}🥇
+      {% elif loop.index == 2 %}🥈
+      {% elif loop.index == 3 %}🥉
+      {% else %}#{{ loop.index }}{% endif %}
+    </div>
+    <div class="lb-avatar">
+      {% if e.avatar_url %}
+      <img src="{{ e.avatar_url }}" alt="{{ e.username }}" />
+      {% else %}
+      <div class="avatar-placeholder">{{ e.username[0] | upper }}</div>
+      {% endif %}
+    </div>
+    <div class="lb-info">
+      <span class="lb-name">{{ e.username }}</span>
+    </div>
+    <div class="lb-score">
+      <span class="lb-score-num">{{ e.score }}</span>
+      <span class="lb-score-label">pts</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">🏆</div>
+  <h3>No scores yet</h3>
+  <p>Be the first to log your activities today.</p>
+</div>
+{% endif %}
+{% endblock %}

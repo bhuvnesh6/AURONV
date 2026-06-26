@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Nutrition — AURON{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Nutrition</h1>
+  <button class="btn btn-gold btn-sm" onclick="openModal('logMealModal')">+ Log Meal</button>
+</div>
+
+<div class="card">
+  <h3 class="card-title">Today</h3>
+  <div class="macro-row">
+    <div class="macro-item">
+      <div class="macro-circle" style="--pct: {{ [((today.protein_grams or 0) / protein_goal * 100) | round, 100] | min }}">
+        <svg viewBox="0 0 60 60">
+          <circle cx="30" cy="30" r="24" fill="none" stroke="#1a1a1a" stroke-width="5"/>
+          <circle cx="30" cy="30" r="24" fill="none" stroke="#D4AF37" stroke-width="5"
+            stroke-dasharray="{{ ([(today.protein_grams or 0) / protein_goal, 1] | min * 150.8) | round(1) }} 150.8"
+            stroke-dashoffset="37.7" stroke-linecap="round"/>
+        </svg>
+        <div class="macro-center">
+          <span class="macro-val">{{ today.protein_grams or 0 | int }}g</span>
+        </div>
+      </div>
+      <span class="macro-label">Protein</span>
+      <span class="macro-goal">Goal: {{ protein_goal }}g</span>
+    </div>
+    <div class="macro-item">
+      <div class="macro-circle-plain">
+        <span class="macro-big">{{ today.calories or 0 | int }}</span>
+        <span class="macro-unit">kcal</span>
+      </div>
+      <span class="macro-label">Calories</span>
+    </div>
+  </div>
+</div>
+
+{% if today.meals %}
+<div class="card">
+  <h3 class="card-title">Today's Meals</h3>
+  {% for meal in today.meals %}
+  <div class="meal-row">
+    <div class="meal-info">
+      <span class="meal-time">{{ meal.time }}</span>
+      <span class="meal-notes">{{ meal.notes or 'No notes' }}</span>
+    </div>
+    <div class="meal-macros">
+      <span class="meal-protein">{{ meal.protein | int }}g protein</span>
+      <span class="meal-cals">{{ meal.calories | int }} kcal</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="card">
+  <h3 class="card-title">7-Day History</h3>
+  {% for log in history %}
+  <div class="history-row">
+    <span class="history-date">{{ log.date }}</span>
+    <span class="history-val">{{ log.protein_grams | int }}g protein</span>
+    <span class="history-cals">{{ log.calories | int }} kcal</span>
+  </div>
+  {% else %}
+  <p class="text-muted">No history yet.</p>
+  {% endfor %}
+</div>
+
+<div class="modal" id="logMealModal">
+  <div class="modal-card">
+    <h3>Log Meal</h3>
+    <form method="POST" action="/user/nutrition">
+      <div class="form-group">
+        <label>Protein (grams)</label>
+        <input type="number" name="protein_grams" placeholder="30" step="0.1" min="0" required />
+      </div>
+      <div class="form-group">
+        <label>Calories</label>
+        <input type="number" name="calories" placeholder="350" step="1" min="0" />
+      </div>
+      <div class="form-group">
+        <label>Meal notes</label>
+        <input type="text" name="meal_notes" placeholder="Chicken & rice" />
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('logMealModal')">Cancel</button>
+        <button type="submit" class="btn btn-gold">Log</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

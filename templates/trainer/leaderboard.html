@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Trainer Leaderboard — AURON{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Trainer Rankings</h1>
+</div>
+<p class="page-sub" style="margin-bottom:1.5rem">Ranked by average client AURON score</p>
+
+<div class="leaderboard">
+  {% for t in board %}
+  <div class="lb-row {% if loop.index <= 3 %}lb-top{% endif %}">
+    <div class="lb-rank">
+      {% if loop.index == 1 %}🥇
+      {% elif loop.index == 2 %}🥈
+      {% elif loop.index == 3 %}🥉
+      {% else %}#{{ loop.index }}{% endif %}
+    </div>
+    <div class="lb-avatar">
+      <div class="avatar-placeholder">{{ t.username[0] | upper }}</div>
+    </div>
+    <div class="lb-info">
+      <span class="lb-name">{{ t.business_name or t.username }}</span>
+      <span class="lb-sub">{{ t.client_count }} clients</span>
+    </div>
+    <div class="lb-score">
+      <span class="lb-score-num">{{ t.avg_score }}</span>
+      <span class="lb-score-label">avg</span>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🏆</div>
+    <h3>No rankings yet</h3>
+    <p>Trainers appear here once they have active clients with scores.</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
