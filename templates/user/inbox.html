@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}Inbox — AURON{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Inbox</h1>
+  <button class="btn btn-gold btn-sm" onclick="openModal('newDmModal')">+ New Message</button>
+</div>
+
+<div class="inbox-layout">
+
+  {# ── Thread list ── #}
+  <div class="inbox-sidebar {% if active_tid %}inbox-hidden-mobile{% endif %}">
+    {% if threads %}
+      {% for t in threads %}
+      <a href="/user/inbox?t={{ t.trainer_id }}" class="inbox-thread {% if t.trainer_id==active_tid %}active{% endif %}">
+        <div class="it-avatar">
+          {% if t.trainer.avatar_url %}
+            <img src="{{ t.trainer.avatar_url }}" />
+          {% else %}
+            <div class="it-initials">{{ t.trainer.username[0]|upper if t.trainer else '?' }}</div>
+          {% endif %}
+          {% if t.unread %}<span class="it-badge">{{ t.unread }}</span>{% endif %}
+        </div>
+        <div class="it-info">
+          <span class="it-name">{{ t.trainer.business_name or t.trainer.username if t.trainer else 'Unknown' }}</span>
+          <span class="it-preview">{{ t.latest.content[:50]+'…' if t.latest and t.latest.content|length>50 else (t.latest.content if t.latest else '') }}</span>
+        </div>
+        <span class="it-time">{{ t.latest.created_at.strftime('%b %d') if t.latest and t.latest.created_at else '' }}</span>
+      </a>
+      {% endfor %}
+    {% else %}
+      <div class="inbox-empty">
+        <div style="font-size:2.5rem;margin-bottom:.75rem">💬</div>
+        <p>No messages yet.<br/>Message a trainer from the Leaderboard.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  {# ── Active thread ── #}
+  <div class="inbox-thread-pane {% if not active_tid %}inbox-hidden-mobile{% endif %}">
+    {% if active_tid and active_trainer %}
+    <div class="thread-header">
+      <a href="/user/inbox" class="back-btn">← Back</a>
+      <div class="thread-trainer-info">
+        {% if active_trainer.avatar_url %}
+          <img src="{{ active_trainer.avatar_url }}" class="thread-trainer-avatar" />
+        {% else %}
+          <div class="thread-trainer-initials">{{ active_trainer.username[0]|upper }}</div>
+        {% endif %}
+        <span>{{ active_trainer.business_name or active_trainer.username }}</span>
+      </div>
+    </div>
+
+    <div class="thread-messages" id="threadMessages">
+      {% for msg in thread_msgs %}
+      <div class="msg-bubble {% if msg.direction=='trainer_to_user' %}msg-in{% else %}msg-out{% endif %}">
+        <div class="msg-text">{{ msg.content }}</div>
+        <div class="msg-ts">{{ msg.created_at.strftime('%b %d, %H:%M') if msg.created_at else '' }}</div>
+      </div>
+      {% else %}
+      <div style="text-align:center;color:var(--muted);padding:2rem">Start the conversation</div>
+      {% endfor %}
+    </div>
+
+    <div class="thread-compose">
+      <textarea id="replyBox" placeholder="Write a message…" rows="2"></textarea>
+      <button class="btn btn-gold" onclick="sendReply('{{ active_tid }}')">Send</button>
+    </div>
+
+    {% else %}
+    <div class="thread-empty">
+      <div style="font-size:3rem">💬</div>
+      <h3>Select a conversation</h3>
+      <p>Choose a thread on the left or message a trainer from the Leaderboard.</p>
+      <button class="btn btn-gold" onclick="openModal('newDmModal')">New Message</button>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# ── New DM modal (search trainers) ── #}
+<div class="modal" id="newDmModal">
+  <div class="modal-card">
+    <h3>Message a Trainer</h3>
+    <div class="form-group">
+      <label>Search trainer</label>
+      <input type="text" id="trainerSearchInput" placeholder="Type username…" autocomplete="off"
+             oninput="searchTrainers(this.value)" />
+      <div id="trainerSearchResults" class="search-dropdown"></div>
+      <input type="hidden" id="selectedTrainerId" />
+    </div>
+    <div class="form-group">
+      <label>Message</label>
+      <textarea id="newDmContent" rows="4" placeholder="Hey coach…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('newDmModal')">Cancel</button>
+      <button class="btn btn-gold" onclick="sendNewDm()">Send</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+// Send reply in active thread
+async function sendReply(trainerId) {
+  const box     = document.getElementById('replyBox');
+  const content = box.value.trim();
+  if (!content) return;
+  const r = await fetch('/api/messages/send', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({trainer_id: trainerId, content})
+  });
+  if ((await r.json()).ok) {
+    // Optimistically append
+    const pane = document.getElementById('threadMessages');
+    const el   = document.createElement('div');
+    el.className = 'msg-bubble msg-out';
+    el.innerHTML = `<div class="msg-text">${content}</div><div class="msg-ts">Just now</div>`;
+    pane.appendChild(el);
+    pane.scrollTop = pane.scrollHeight;
+    box.value = '';
+  }
+}
+
+// Ctrl/Cmd+Enter sends
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey||e.metaKey) && e.key==='Enter') {
+    const tid = '{{ active_tid }}';
+    if (tid) sendReply(tid);
+  }
+});
+
+// Scroll to bottom on load
+window.addEventListener('load', () => {
+  const p = document.getElementById('threadMessages');
+  if (p) p.scrollTop = p.scrollHeight;
+});
+
+// Trainer search
+let searchTimer;
+async function searchTrainers(q) {
+  clearTimeout(searchTimer);
+  const box = document.getElementById('trainerSearchResults');
+  if (q.length < 2) { box.innerHTML=''; return; }
+  searchTimer = setTimeout(async () => {
+    const r    = await fetch(`/api/trainers/search?q=${encodeURIComponent(q)}`);
+    const data = await r.json();
+    box.innerHTML = data.map(t => `
+      <div class="search-result-item" onclick="selectTrainer('${t.id}','${t.username}')">
+        ${t.avatar_url ? `<img src="${t.avatar_url}" class="sr-avatar"/>` : `<div class="sr-avatar sr-initials">${t.username[0].toUpperCase()}</div>`}
+        <div><strong>${t.username}</strong>${t.business_name?`<span class="sr-sub">${t.business_name}</span>`:''}</div>
+      </div>
+    `).join('') || '<div class="search-result-item" style="color:var(--muted)">No trainers found</div>';
+  }, 300);
+}
+
+function selectTrainer(id, name) {
+  document.getElementById('selectedTrainerId').value = id;
+  document.getElementById('trainerSearchInput').value = name;
+  document.getElementById('trainerSearchResults').innerHTML = '';
+}
+
+async function sendNewDm() {
+  const tid     = document.getElementById('selectedTrainerId').value;
+  const content = document.getElementById('newDmContent').value.trim();
+  if (!tid)     { alert('Select a trainer first.'); return; }
+  if (!content) { alert('Enter a message.'); return; }
+  const r = await fetch('/api/messages/send', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({trainer_id: tid, content})
+  });
+  if ((await r.json()).ok) {
+    closeModal('newDmModal');
+    window.location.href = `/user/inbox?t=${tid}`;
+  }
+}
+</script>
+{% endblock %}

@@ -3,22 +3,14 @@
 {% block public_content %}
 <div class="auth-page">
   <div class="auth-card">
-    <div class="auth-logo">
-      <span class="logo-text">AURON</span>
-    </div>
+    <div class="auth-logo"><span class="logo-text">AURON</span></div>
     <h2 class="auth-title">Welcome back</h2>
-    <p class="auth-sub">Sign in to your account</p>
+    <p class="auth-sub">Sign in with your email — we'll find your account automatically</p>
 
     <form method="POST" action="/login" class="auth-form">
-      <div class="role-toggle" id="roleToggle">
-        <button type="button" class="role-btn active" data-role="user" onclick="setRole('user')">Athlete</button>
-        <button type="button" class="role-btn" data-role="trainer" onclick="setRole('trainer')">Trainer</button>
-      </div>
-      <input type="hidden" name="role" id="roleInput" value="user" />
-
       <div class="form-group">
         <label>Email</label>
-        <input type="email" name="email" required placeholder="your@email.com" />
+        <input type="email" name="email" required placeholder="your@email.com" autofocus />
       </div>
       <div class="form-group">
         <label>Password</label>
@@ -26,25 +18,17 @@
       </div>
       <div class="form-row-space">
         <label class="checkbox-label">
-          <input type="checkbox" name="remember_me" />
-          Remember me
+          <input type="checkbox" name="remember_me" /> Remember me
         </label>
         <a href="#" class="forgot-link">Forgot password?</a>
       </div>
       <button type="submit" class="btn btn-gold btn-block">Sign In</button>
     </form>
 
-    <p class="auth-footer">Don't have an account?
-      <a href="/signup/user">Join as Athlete</a> or
-      <a href="/signup/trainer">Join as Trainer</a>
+    <p class="auth-footer">
+      New athlete? <a href="/signup/user">Create account</a> &nbsp;·&nbsp;
+      Trainer? <a href="/signup/trainer">Trainer signup</a>
     </p>
   </div>
 </div>
-<script>
-function setRole(role) {
-  document.getElementById('roleInput').value = role;
-  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`[data-role="${role}"]`).classList.add('active');
-}
-</script>
 {% endblock %}

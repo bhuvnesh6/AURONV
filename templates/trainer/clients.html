@@ -11,48 +11,32 @@
   {% for c in clients %}
   <div class="card client-card">
     <div class="client-card-header">
-      <div class="client-avatar-lg">{{ c.username[0] | upper }}</div>
+      <div class="client-avatar-lg">
+        {% if c.avatar_url %}<img src="{{ c.avatar_url }}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;" />
+        {% else %}{{ c.username[0]|upper }}{% endif %}
+      </div>
       <div class="client-card-info">
         <h3 class="client-name-lg">{{ c.username }}</h3>
-        <span class="client-rank rank-{{ c.rank | lower }}">{{ c.rank }}</span>
+        <span class="client-rank rank-{{ c.rank|lower }}">{{ c.rank }}</span>
       </div>
-      <div class="client-score-circle">
-        <span>{{ c.today_score }}</span>
-      </div>
+      <div class="client-score-circle"><span>{{ c.today_score }}</span></div>
     </div>
     <div class="compliance-bars">
+      {% for key, label in [('workout','Workout'),('protein','Protein'),('water','Water'),('sleep','Sleep'),('steps','Steps')] %}
       <div class="comp-row">
-        <span class="comp-label">Workout</span>
-        <div class="comp-bar"><div style="width:{{ c.compliance.workout }}%"></div></div>
-        <span class="comp-pct">{{ c.compliance.workout }}%</span>
+        <span class="comp-label">{{ label }}</span>
+        <div class="comp-bar"><div style="width:{{ c.compliance[key] }}%"></div></div>
+        <span class="comp-pct">{{ c.compliance[key] }}%</span>
       </div>
-      <div class="comp-row">
-        <span class="comp-label">Protein</span>
-        <div class="comp-bar"><div style="width:{{ c.compliance.protein }}%"></div></div>
-        <span class="comp-pct">{{ c.compliance.protein }}%</span>
-      </div>
-      <div class="comp-row">
-        <span class="comp-label">Water</span>
-        <div class="comp-bar"><div style="width:{{ c.compliance.water }}%"></div></div>
-        <span class="comp-pct">{{ c.compliance.water }}%</span>
-      </div>
-      <div class="comp-row">
-        <span class="comp-label">Sleep</span>
-        <div class="comp-bar"><div style="width:{{ c.compliance.sleep }}%"></div></div>
-        <span class="comp-pct">{{ c.compliance.sleep }}%</span>
-      </div>
-      <div class="comp-row">
-        <span class="comp-label">Steps</span>
-        <div class="comp-bar"><div style="width:{{ c.compliance.steps }}%"></div></div>
-        <span class="comp-pct">{{ c.compliance.steps }}%</span>
-      </div>
+      {% endfor %}
     </div>
     <div class="client-card-footer">
       <span class="streak-tag">🔥 {{ c.streak }} day streak</span>
       <div class="client-actions">
         <a href="/trainer/clients/{{ c._id }}" class="btn btn-sm btn-ghost">View</a>
+        <a href="/trainer/messages?client={{ c._id }}" class="btn btn-sm btn-ghost">💬</a>
         <form method="POST" action="/trainer/clients/remove/{{ c._id }}" style="display:inline">
-          <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Remove this client?')">Remove</button>
+          <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Remove client?')">Remove</button>
         </form>
       </div>
     </div>
@@ -63,25 +47,89 @@
 <div class="empty-state">
   <div class="empty-icon">👥</div>
   <h3>No clients yet</h3>
-  <p>Add athletes by their username to start tracking their progress.</p>
+  <p>Search and add athletes, or share your invite link from your profile.</p>
   <button class="btn btn-gold" onclick="openModal('addClientModal')">Add Client</button>
 </div>
 {% endif %}
 
+{# ── Add Client Modal with live search ── #}
 <div class="modal" id="addClientModal">
   <div class="modal-card">
     <h3>Add Client</h3>
-    <form method="POST" action="/trainer/clients/add">
+    <form method="POST" action="/trainer/clients/add" id="addClientForm">
+      <input type="hidden" name="user_id" id="selectedUserId" />
       <div class="form-group">
-        <label>Athlete Username</label>
-        <input type="text" name="username" placeholder="athlete_username" required />
-        <span class="form-hint">The athlete must already have an AURON account.</span>
+        <label>Search by username</label>
+        <input type="text" id="clientSearchInput" placeholder="Type username…" autocomplete="off"
+               oninput="searchUsers(this.value)" />
+        <div id="clientSearchResults" class="search-dropdown"></div>
+        <div id="selectedUserDisplay" class="selected-user-chip" style="display:none"></div>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" onclick="closeModal('addClientModal')">Cancel</button>
-        <button type="submit" class="btn btn-gold">Add Client</button>
+        <button type="submit" class="btn btn-gold" id="addClientBtn" disabled>Add to Team</button>
       </div>
     </form>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let searchTimer;
+
+async function searchUsers(q) {
+  clearTimeout(searchTimer);
+  const box = document.getElementById('clientSearchResults');
+  document.getElementById('selectedUserId').value = '';
+  document.getElementById('addClientBtn').disabled = true;
+  document.getElementById('selectedUserDisplay').style.display = 'none';
+
+  if (q.length < 1) { box.innerHTML = ''; return; }
+
+  searchTimer = setTimeout(async () => {
+    const r    = await fetch(`/trainer/clients/search?q=${encodeURIComponent(q)}`);
+    const data = await r.json();
+    if (!data.length) {
+      box.innerHTML = '<div class="search-result-item" style="color:var(--muted)">No athletes found</div>';
+      return;
+    }
+    box.innerHTML = data.map(u => `
+      <div class="search-result-item" onclick="selectUser('${u.id}','${u.username}','${u.avatar_url||''}','${u.goal||''}')">
+        ${u.avatar_url
+          ? `<img src="${u.avatar_url}" class="sr-avatar" />`
+          : `<div class="sr-avatar sr-initials">${u.username[0].toUpperCase()}</div>`}
+        <div>
+          <strong>${u.username}</strong>
+          ${u.goal ? `<span class="sr-sub">${u.goal.replace('_',' ')}</span>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }, 250);
+}
+
+function selectUser(id, username, avatarUrl, goal) {
+  document.getElementById('selectedUserId').value = id;
+  document.getElementById('clientSearchInput').value = '';
+  document.getElementById('clientSearchResults').innerHTML = '';
+  document.getElementById('addClientBtn').disabled = false;
+
+  const chip = document.getElementById('selectedUserDisplay');
+  chip.style.display = 'flex';
+  chip.innerHTML = `
+    ${avatarUrl
+      ? `<img src="${avatarUrl}" class="sr-avatar" style="width:32px;height:32px" />`
+      : `<div class="sr-avatar sr-initials" style="width:32px;height:32px;font-size:.8rem">${username[0].toUpperCase()}</div>`}
+    <span style="font-weight:600">${username}</span>
+    ${goal ? `<span style="font-size:.75rem;color:var(--muted)">${goal.replace('_',' ')}</span>` : ''}
+    <button type="button" onclick="clearUser()" style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem">×</button>
+  `;
+}
+
+function clearUser() {
+  document.getElementById('selectedUserId').value = '';
+  document.getElementById('addClientBtn').disabled = true;
+  document.getElementById('selectedUserDisplay').style.display = 'none';
+}
+</script>
 {% endblock %}

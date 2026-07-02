@@ -15,7 +15,10 @@
         <h3 class="program-name">{{ p.name }}</h3>
         <p class="program-desc">{{ p.description or 'No description' }}</p>
       </div>
-      <button class="btn btn-sm btn-ghost" onclick="openAssign('{{ p._id }}')">Assign</button>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <span class="prog-assigned-count">{{ p.assigned_count }} assigned</span>
+        <button class="btn btn-sm btn-gold" onclick="openAssign('{{ p._id }}')">Assign</button>
+      </div>
     </div>
     <div class="program-meta">
       <span>Created {{ p.created_at.strftime('%b %d, %Y') if p.created_at else '' }}</span>
@@ -27,11 +30,12 @@
 <div class="empty-state">
   <div class="empty-icon">📋</div>
   <h3>No programs yet</h3>
-  <p>Create training programs to assign to your clients.</p>
+  <p>Create training programs and assign them to your clients.</p>
   <button class="btn btn-gold" onclick="openModal('newProgramModal')">Create Program</button>
 </div>
 {% endif %}
 
+{# ── New Program Modal ── #}
 <div class="modal" id="newProgramModal">
   <div class="modal-card">
     <h3>New Program</h3>
@@ -42,7 +46,7 @@
       </div>
       <div class="form-group">
         <label>Description</label>
-        <textarea name="description" rows="3" placeholder="Program overview..."></textarea>
+        <textarea name="description" rows="3" placeholder="What this program focuses on…"></textarea>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" onclick="closeModal('newProgramModal')">Cancel</button>
@@ -52,29 +56,64 @@
   </div>
 </div>
 
+{# ── Assign Modal ── #}
 <div class="modal" id="assignModal">
   <div class="modal-card">
     <h3>Assign Program</h3>
     <form method="POST" id="assignForm">
-      <div class="form-group">
-        <label>Select Clients</label>
-        <div class="checkbox-list" id="clientCheckboxes">
-          {# Populated by JS #}
+      <input type="hidden" name="assign_all" id="assignAllFlag" value="0" />
+
+      {# Assign All button #}
+      <div class="assign-all-row">
+        <div>
+          <div style="font-weight:600;font-size:.9rem">Assign to entire team</div>
+          <div style="font-size:.75rem;color:var(--muted)">{{ total_clients }} client{{ 's' if total_clients != 1 else '' }}</div>
         </div>
+        <button type="button" class="btn btn-gold btn-sm" onclick="assignAll()">Assign All</button>
       </div>
+
+      <div class="assign-divider">or pick individually</div>
+
+      <div class="checkbox-list" id="clientCheckboxes" style="max-height:260px;overflow-y:auto">
+        {# Populated by JS from clientData #}
+      </div>
+
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" onclick="closeModal('assignModal')">Cancel</button>
-        <button type="submit" class="btn btn-gold">Assign</button>
+        <button type="submit" class="btn btn-gold" id="assignSubmitBtn">Assign Selected</button>
       </div>
     </form>
   </div>
 </div>
 
 <script>
-const clientData = {{ clients_json | safe if clients_json is defined else '[]' }};
+const clientData = {{ clients_json|safe if clients_json is defined else '[]' }};
+
 function openAssign(pid) {
-  document.getElementById('assignForm').action = '/trainer/programs/' + pid + '/assign';
+  const form = document.getElementById('assignForm');
+  form.action = '/trainer/programs/' + pid + '/assign';
+  document.getElementById('assignAllFlag').value = '0';
+
+  const container = document.getElementById('clientCheckboxes');
+  if (!clientData.length) {
+    container.innerHTML = '<p class="text-muted" style="font-size:.85rem;padding:.5rem">No clients yet.</p>';
+  } else {
+    container.innerHTML = clientData.map(c => `
+      <label class="checkbox-label" style="padding:.5rem .25rem;border-bottom:1px solid var(--border)">
+        <input type="checkbox" name="client_ids" value="${c.id}" />
+        ${c.avatar_url ? `<img src="${c.avatar_url}" style="width:28px;height:28px;border-radius:50%;object-fit:cover" />` : `<div style="width:28px;height:28px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:var(--gold)">${c.username[0].toUpperCase()}</div>`}
+        <span style="font-weight:600">${c.username}</span>
+      </label>
+    `).join('');
+  }
   openModal('assignModal');
+}
+
+function assignAll() {
+  document.getElementById('assignAllFlag').value = '1';
+  // Uncheck all individual to avoid confusion
+  document.querySelectorAll('#clientCheckboxes input[type=checkbox]').forEach(cb => cb.checked = false);
+  document.getElementById('assignForm').submit();
 }
 </script>
 {% endblock %}

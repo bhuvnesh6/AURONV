@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#D4AF37" />
-  <meta name="description" content="AURON — Fitness Accountability Platform" />
   <link rel="manifest" href="/static/manifest.json" />
   <link rel="apple-touch-icon" href="/static/icons/icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -26,138 +25,127 @@
 
 {% if current_user.is_authenticated %}
 
-  {# ── Desktop Sidebar ── #}
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-logo">
-      <span class="logo-text">AURON</span>
-    </div>
-    {% if current_user.role == 'user' %}
-    <div class="sidebar-user">
-      {% set _user_doc = current_user.doc %}
-      {% if _user_doc and _user_doc.avatar_url %}
-        <img src="{{ _user_doc.avatar_url }}" class="sidebar-avatar-img" alt="{{ current_user.username }}" />
-      {% else %}
-        <div class="sidebar-avatar-initials">{{ current_user.username[0] | upper }}</div>
-      {% endif %}
-      <div class="sidebar-user-info">
-        <span class="sidebar-username">{{ current_user.username }}</span>
-        <a href="/user/profile" class="sidebar-edit-link">Edit profile</a>
-      </div>
-    </div>
+<aside class="sidebar">
+  <div class="sidebar-logo"><span class="logo-text">AURON</span></div>
+
+  {% set _doc = current_user.doc %}
+  <div class="sidebar-user">
+    {% if _doc and _doc.avatar_url %}
+      <img src="{{ _doc.avatar_url }}" class="sidebar-avatar-img" alt="{{ current_user.username }}" />
+    {% else %}
+      <div class="sidebar-avatar-initials">{{ current_user.username[0]|upper }}</div>
     {% endif %}
-    <nav class="sidebar-nav">
+    <div class="sidebar-user-info">
+      <span class="sidebar-username">{{ current_user.username }}</span>
       {% if current_user.role == 'user' %}
-        <a href="/user/dashboard" class="nav-item {% if request.path == '/user/dashboard' %}active{% endif %}">
-          <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
-          Dashboard
-        </a>
-        <a href="/user/workouts" class="nav-item {% if '/workouts' in request.path %}active{% endif %}">
-          <svg viewBox="0 0 24 24"><path d="M6.5 6.5h11M6.5 12h11M6.5 17.5h11"/><circle cx="3.5" cy="6.5" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="17.5" r="1"/></svg>
-          Workouts
-        </a>
-        <a href="/user/nutrition" class="nav-item {% if '/nutrition' in request.path %}active{% endif %}">
-          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
-          Nutrition
-        </a>
-        <a href="/user/timeline" class="nav-item {% if '/timeline' in request.path %}active{% endif %}">
-          <svg viewBox="0 0 24 24"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>
-          Timeline
-        </a>
-        <a href="/user/leaderboard" class="nav-item {% if '/leaderboard' in request.path %}active{% endif %}">
-          <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-          Leaderboard
-        </a>
-        <a href="/user/profile" class="nav-item {% if '/profile' in request.path %}active{% endif %}">
-          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          Profile
-        </a>
+        <a href="/user/profile" class="sidebar-edit-link">Edit profile</a>
       {% else %}
-        <a href="/trainer/dashboard" class="nav-item {% if request.path == '/trainer/dashboard' %}active{% endif %}">
-          <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-          Dashboard
-        </a>
-        <a href="/trainer/clients" class="nav-item {% if '/clients' in request.path %}active{% endif %}">
-          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          Clients
-        </a>
-        <a href="/trainer/programs" class="nav-item {% if '/programs' in request.path %}active{% endif %}">
-          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
-          Programs
-        </a>
-        <a href="/trainer/messages" class="nav-item {% if '/messages' in request.path %}active{% endif %}">
-          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          Messages
-        </a>
-        <a href="/trainer/leaderboard" class="nav-item {% if '/leaderboard' in request.path %}active{% endif %}">
-          <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-          Leaderboard
-        </a>
+        <a href="/trainer/profile" class="sidebar-edit-link">Edit profile</a>
       {% endif %}
-    </nav>
-    <div class="sidebar-footer">
-      <a href="/logout" class="nav-item logout-btn">
-        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        Logout
-      </a>
     </div>
-  </aside>
+  </div>
 
-  {# ── Main Content ── #}
-  <main class="main-content">
-    {% block content %}{% endblock %}
-  </main>
-
-  {# ── Mobile Bottom Nav ── #}
-  <nav class="bottom-nav">
+  <nav class="sidebar-nav">
     {% if current_user.role == 'user' %}
-      <a href="/user/dashboard" class="bn-item {% if request.path == '/user/dashboard' %}active{% endif %}">
-        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
-        <span>Home</span>
+      <a href="/user/dashboard" class="nav-item {% if request.path == '/user/dashboard' %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>Dashboard
       </a>
-      <a href="/user/workouts" class="bn-item {% if '/workouts' in request.path %}active{% endif %}">
-        <svg viewBox="0 0 24 24"><path d="M6.5 6.5h11M6.5 12h11M6.5 17.5h11"/><circle cx="3.5" cy="6.5" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="17.5" r="1"/></svg>
-        <span>Workouts</span>
+      <a href="/user/workouts" class="nav-item {% if '/workouts' in request.path %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><path d="M6.5 6.5h11M6.5 12h11M6.5 17.5h11"/><circle cx="3.5" cy="6.5" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="17.5" r="1"/></svg>Workouts
       </a>
-      <a href="/user/timeline" class="bn-item {% if '/timeline' in request.path %}active{% endif %}">
-        <svg viewBox="0 0 24 24"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>
-        <span>Progress</span>
+      <a href="/user/nutrition" class="nav-item {% if '/nutrition' in request.path %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Nutrition
       </a>
-      <a href="/user/leaderboard" class="bn-item {% if '/leaderboard' in request.path %}active{% endif %}">
-        <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-        <span>Rank</span>
+      <a href="/user/timeline" class="nav-item {% if '/timeline' in request.path %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>Timeline
       </a>
-      <a href="/user/profile" class="bn-item {% if '/profile' in request.path %}active{% endif %}">
-        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span>Profile</span>
+      <a href="/user/leaderboard" class="nav-item {% if '/leaderboard' in request.path %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>Leaderboard
+      </a>
+      <a href="/user/inbox" class="nav-item {% if '/inbox' in request.path %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Inbox <span class="nav-unread-badge" id="sidebarUnread" style="display:none"></span>
+      </a>
+      <a href="/user/profile" class="nav-item {% if '/profile' in request.path %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile
       </a>
     {% else %}
-      <a href="/trainer/dashboard" class="bn-item {% if request.path == '/trainer/dashboard' %}active{% endif %}">
-        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-        <span>Home</span>
+      <a href="/trainer/dashboard" class="nav-item {% if request.path == '/trainer/dashboard' %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Dashboard
       </a>
-      <a href="/trainer/clients" class="bn-item {% if '/clients' in request.path %}active{% endif %}">
-        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-        <span>Clients</span>
+      <a href="/trainer/clients" class="nav-item {% if '/clients' in request.path %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Clients
       </a>
-      <a href="/trainer/messages" class="bn-item {% if '/messages' in request.path %}active{% endif %}">
+      <a href="/trainer/messages" class="nav-item {% if '/messages' in request.path %}active{% endif %}">
         <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        <span>Messages</span>
+        Messages <span class="nav-unread-badge" id="trainerUnread" style="display:none"></span>
       </a>
-      <a href="/trainer/programs" class="bn-item {% if '/programs' in request.path %}active{% endif %}">
-        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
-        <span>Programs</span>
+      <a href="/trainer/programs" class="nav-item {% if '/programs' in request.path %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>Programs
       </a>
-      <a href="/trainer/leaderboard" class="bn-item {% if '/leaderboard' in request.path %}active{% endif %}">
-        <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-        <span>Rank</span>
+      <a href="/trainer/leaderboard" class="nav-item {% if '/leaderboard' in request.path %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>Leaderboard
+      </a>
+      <a href="/trainer/profile" class="nav-item {% if '/profile' in request.path %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile
       </a>
     {% endif %}
   </nav>
 
+  <div class="sidebar-footer">
+    <a href="/logout" class="nav-item logout-btn">
+      <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Logout
+    </a>
+  </div>
+</aside>
+
+<main class="main-content">{% block content %}{% endblock %}</main>
+
+<nav class="bottom-nav">
+  {% if current_user.role == 'user' %}
+    <a href="/user/dashboard" class="bn-item {% if request.path == '/user/dashboard' %}active{% endif %}">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Home</span>
+    </a>
+    <a href="/user/workouts" class="bn-item {% if '/workouts' in request.path %}active{% endif %}">
+      <svg viewBox="0 0 24 24"><path d="M6.5 6.5h11M6.5 12h11M6.5 17.5h11"/></svg><span>Workouts</span>
+    </a>
+    <a href="/user/leaderboard" class="bn-item {% if '/leaderboard' in request.path %}active{% endif %}">
+      <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span>Rank</span>
+    </a>
+    <a href="/user/inbox" class="bn-item {% if '/inbox' in request.path %}active{% endif %}" style="position:relative">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>Inbox</span>
+      <span class="bn-badge" id="bnUnread" style="display:none"></span>
+    </a>
+    <a href="/user/profile" class="bn-item {% if '/profile' in request.path %}active{% endif %}">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Me</span>
+    </a>
+  {% else %}
+    <a href="/trainer/dashboard" class="bn-item {% if request.path == '/trainer/dashboard' %}active{% endif %}">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Home</span>
+    </a>
+    <a href="/trainer/clients" class="bn-item {% if '/clients' in request.path %}active{% endif %}">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>Clients</span>
+    </a>
+    <a href="/trainer/messages" class="bn-item {% if '/messages' in request.path %}active{% endif %}" style="position:relative">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>Messages</span>
+      <span class="bn-badge" id="trainerBnBadge" style="display:none"></span>
+    </a>
+    <a href="/trainer/leaderboard" class="bn-item {% if '/leaderboard' in request.path %}active{% endif %}">
+      <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span>Rank</span>
+    </a>
+    <a href="/trainer/profile" class="bn-item {% if '/profile' in request.path %}active{% endif %}">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Profile</span>
+    </a>
+  {% endif %}
+</nav>
+
 {% else %}
-  {% block public_content %}{% endblock %}
+{% block public_content %}{% endblock %}
 {% endif %}
 
+<script>const AURON_ROLE = "{{ current_user.role if current_user.is_authenticated else '' }}";</script>
 <script src="/static/js/main.js"></script>
 {% block scripts %}{% endblock %}
 </body>

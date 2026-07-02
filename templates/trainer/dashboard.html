@@ -6,6 +6,11 @@
     <h1 class="page-title">Dashboard</h1>
     <p class="page-sub">{{ trainer.business_name or current_user.username }}</p>
   </div>
+  {% if unread %}
+  <a href="/trainer/messages" class="dashboard-unread-badge">
+    💬 {{ unread }} new message{{ 's' if unread != 1 else '' }}
+  </a>
+  {% endif %}
 </div>
 
 <div class="stats-row">
@@ -18,7 +23,7 @@
     <span class="stat-small">Team Avg Score</span>
   </div>
   <div class="stat-box">
-    <span class="stat-big stat-warn">{{ stats.at_risk | length }}</span>
+    <span class="stat-big stat-warn">{{ stats.at_risk|length }}</span>
     <span class="stat-small">At Risk</span>
   </div>
 </div>
@@ -28,12 +33,18 @@
   <h3 class="card-title">⚠️ At Risk Clients</h3>
   {% for c in stats.at_risk %}
   <div class="client-row">
-    <div class="client-avatar">{{ c.username[0] | upper }}</div>
+    <div class="client-avatar">
+      {% if c.avatar_url %}<img src="{{ c.avatar_url }}" style="width:36px;height:36px;border-radius:50%;object-fit:cover" />
+      {% else %}{{ c.username[0]|upper }}{% endif %}
+    </div>
     <div class="client-info">
       <span class="client-name">{{ c.username }}</span>
       <span class="client-score score-low">Score: {{ c.today_score }}</span>
     </div>
-    <a href="/trainer/clients/{{ c._id }}" class="btn btn-sm btn-ghost">View</a>
+    <div style="display:flex;gap:.5rem">
+      <a href="/trainer/clients/{{ c._id }}" class="btn btn-sm btn-ghost">View</a>
+      <a href="/trainer/messages?client={{ c._id }}" class="btn btn-sm btn-ghost">💬</a>
+    </div>
   </div>
   {% endfor %}
 </div>
@@ -43,15 +54,18 @@
   <h3 class="card-title">🏆 Top Performers</h3>
   {% for c in stats.top_performers %}
   <div class="client-row">
-    <div class="client-avatar">{{ c.username[0] | upper }}</div>
+    <div class="client-avatar">
+      {% if c.avatar_url %}<img src="{{ c.avatar_url }}" style="width:36px;height:36px;border-radius:50%;object-fit:cover" />
+      {% else %}{{ c.username[0]|upper }}{% endif %}
+    </div>
     <div class="client-info">
       <span class="client-name">{{ c.username }}</span>
-      <span class="client-rank rank-{{ c.rank | lower }}">{{ c.rank }}</span>
+      <span class="client-rank rank-{{ c.rank|lower }}">{{ c.rank }}</span>
     </div>
     <span class="lb-score-num">{{ c.today_score }}</span>
   </div>
   {% else %}
-  <p class="text-muted">No clients added yet.</p>
+  <p class="text-muted">Add clients to see top performers.</p>
   {% endfor %}
 </div>
 
@@ -63,13 +77,27 @@
   </div>
   {% for c in clients[:5] %}
   <div class="client-row">
-    <div class="client-avatar">{{ c.username[0] | upper }}</div>
+    <div class="client-avatar">
+      {% if c.avatar_url %}<img src="{{ c.avatar_url }}" style="width:36px;height:36px;border-radius:50%;object-fit:cover" />
+      {% else %}{{ c.username[0]|upper }}{% endif %}
+    </div>
     <div class="client-info">
       <span class="client-name">{{ c.username }}</span>
+      <span style="font-size:.75rem;color:var(--muted)">{{ c.get('city','') or c.get('country','') }}</span>
     </div>
-    <span class="lb-score-num">{{ c.today_score }}</span>
+    <div style="display:flex;align-items:center;gap:.75rem">
+      <span class="lb-score-num">{{ c.today_score }}</span>
+      <a href="/trainer/messages?client={{ c._id }}" class="btn btn-sm btn-ghost">💬</a>
+    </div>
   </div>
   {% endfor %}
+</div>
+{% else %}
+<div class="empty-state" style="padding:2rem">
+  <div class="empty-icon">👥</div>
+  <h3>No clients yet</h3>
+  <p>Add athletes or share your invite link to build your team.</p>
+  <a href="/trainer/clients" class="btn btn-gold">Add Clients</a>
 </div>
 {% endif %}
 {% endblock %}

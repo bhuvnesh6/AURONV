@@ -2,54 +2,163 @@
 {% block title %}AURON — Fitness Accountability Platform{% endblock %}
 {% block public_content %}
 <div class="landing">
+
+  {# ── Nav ── #}
   <nav class="landing-nav">
     <span class="logo-text">AURON</span>
     <div class="landing-nav-links">
+      <a href="/pricing" class="btn btn-ghost btn-sm">Pricing</a>
       <a href="/login" class="btn btn-ghost">Login</a>
       <a href="/signup/user" class="btn btn-gold">Get Started</a>
     </div>
   </nav>
 
+  {# ── Hero ── #}
   <section class="hero">
-    <div class="hero-badge">Accountability Platform</div>
+    <div class="hero-badge">Fitness Accountability Platform</div>
     <h1 class="hero-title">
-      Build the habit.<br />
-      <span class="gold">Track the score.</span><br />
+      Build the habit.<br/>
+      <span class="gold">Track the score.</span><br/>
       Own the streak.
     </h1>
-    <p class="hero-sub">AURON turns every workout, meal, and night's sleep into a single accountability score — then ranks you against the world.</p>
+    <p class="hero-sub">AURON turns every workout, meal, and night's sleep into a single accountability score — then ranks you against your city, country, and the world.</p>
     <div class="hero-cta">
       <a href="/signup/user" class="btn btn-gold btn-lg">Join as Athlete</a>
       <a href="/signup/trainer" class="btn btn-outline btn-lg">Join as Trainer</a>
     </div>
   </section>
 
+  {# ── Live global top-10 ── #}
+  <section class="landing-lb-section">
+    <h2 class="landing-section-title">🌍 Global Top 10 Today</h2>
+    <div class="landing-lb-tabs">
+      <button class="llb-tab active" onclick="loadLb('athletes',this)">Athletes</button>
+      <button class="llb-tab" onclick="loadLb('trainers',this)">Trainers</button>
+    </div>
+    <div class="landing-lb" id="landingLb">
+      <div class="landing-lb-loading">Loading rankings…</div>
+    </div>
+  </section>
+
+  {# ── Features ── #}
   <section class="features">
     <div class="feature-card">
       <div class="feature-icon">⚡</div>
       <h3>AURON Score</h3>
-      <p>A single 0-100 score computed daily from your workout, protein, sleep, water, and steps.</p>
+      <p>A 0–100 daily score from workout, protein, sleep, water, and steps.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🔥</div>
       <h3>Streak System</h3>
-      <p>Stay consistent. Hit 80+ every day to build your streak. Longest streak earns elite status.</p>
+      <p>Hit 80+ every day. Build your streak. Rise from Iron to Elite.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🏆</div>
-      <h3>Global Leaderboard</h3>
-      <p>Compete globally, weekly, and monthly. Rise from Iron to Elite with every log.</p>
+      <h3>Location Leaderboards</h3>
+      <p>Compete by city, state, country, or globally. Team boards for squads.</p>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">📊</div>
-      <h3>Trainer Dashboard</h3>
-      <p>Trainers monitor compliance, flag at-risk clients, assign programs, and message teams.</p>
+      <div class="feature-icon">💬</div>
+      <h3>Coach Inbox</h3>
+      <p>Message trainers directly. Coaches manage full client threads.</p>
     </div>
   </section>
 
+  {# ── Pricing teaser ── #}
+  <section class="landing-pricing-teaser">
+    <div class="lpt-inner">
+      <div class="lpt-left">
+        <div class="hero-badge" style="margin-bottom:.75rem">Simple Pricing</div>
+        <h2 class="lpt-title">Start free.<br/>Upgrade when ready.</h2>
+        <p class="lpt-sub">Full access for <strong style="color:var(--gold)">$9.99/mo</strong>. Save 20% on 3-month and annual plans.</p>
+        <div class="lpt-plans">
+          <div class="lpt-plan">
+            <span class="lpt-plan-name">Free</span>
+            <span class="lpt-plan-price">$0</span>
+            <span class="lpt-plan-desc">Score tracking, 7-day history, global leaderboard</span>
+          </div>
+          <div class="lpt-plan lpt-plan-featured">
+            <span class="lpt-plan-name">Pro</span>
+            <span class="lpt-plan-price">$9.99<span style="font-size:.75rem;font-weight:400">/mo</span></span>
+            <span class="lpt-plan-desc">Unlimited history, trainer inbox, location leaderboards, programs</span>
+          </div>
+          <div class="lpt-plan">
+            <span class="lpt-plan-name">Trainer</span>
+            <span class="lpt-plan-price">$9.99<span style="font-size:.75rem;font-weight:400">/mo</span></span>
+            <span class="lpt-plan-desc">Unlimited clients, compliance tracking, broadcast messaging</span>
+          </div>
+        </div>
+        <a href="/pricing" class="btn btn-gold" style="margin-top:1.5rem">See Full Pricing →</a>
+      </div>
+    </div>
+  </section>
+
+  {# ── Footer ── #}
   <footer class="landing-footer">
     <span class="logo-text">AURON</span>
-    <p>Built for athletes who refuse to be average.</p>
+    <p style="margin:.5rem 0;color:var(--muted);font-size:.85rem">Built for athletes who refuse to be average.</p>
+
+    <div class="landing-footer-links">
+      <div class="lfl-group">
+        <span class="lfl-heading">Product</span>
+        <a href="/pricing">Pricing</a>
+        <a href="/signup/user">Sign Up — Athlete</a>
+        <a href="/signup/trainer">Sign Up — Trainer</a>
+        <a href="/login">Login</a>
+      </div>
+      <div class="lfl-group">
+        <span class="lfl-heading">Legal</span>
+        <a href="/terms">Terms of Service</a>
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/refund">Refund Policy</a>
+      </div>
+      <div class="lfl-group">
+        <span class="lfl-heading">Support</span>
+        <a href="mailto:support@auron.app">support@auron.app</a>
+        <a href="mailto:legal@auron.app">legal@auron.app</a>
+      </div>
+    </div>
+
+    <div class="lfl-bottom">
+      <span>© 2025 AURON. All rights reserved.</span>
+      <span>🇺🇸 United States &nbsp;·&nbsp; 🇨🇦 Canada</span>
+    </div>
   </footer>
 </div>
+
+<script>
+async function loadLb(tab, btn) {
+  document.querySelectorAll('.llb-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const box = document.getElementById('landingLb');
+  box.innerHTML = '<div class="landing-lb-loading">Loading…</div>';
+  try {
+    const r    = await fetch('/api/public/leaderboard?tab=' + tab);
+    const data = await r.json();
+    if (!data.length) {
+      box.innerHTML = '<p style="text-align:center;color:var(--muted);padding:2rem">No scores yet today — be the first!</p>';
+      return;
+    }
+    const medals = ['🥇','🥈','🥉'];
+    box.innerHTML = data.map((e, i) => `
+      <div class="llb-row">
+        <span class="llb-rank">${i < 3 ? medals[i] : '#'+(i+1)}</span>
+        <div class="llb-avatar">
+          ${e.avatar_url
+            ? `<img src="${e.avatar_url}" />`
+            : `<div class="llb-initials">${(e.name||'?')[0].toUpperCase()}</div>`}
+        </div>
+        <div class="llb-info">
+          <span class="llb-name">${e.name}</span>
+          ${e.location ? `<span class="llb-loc">📍 ${e.location}</span>` : ''}
+        </div>
+        <span class="llb-score">${e.score}</span>
+      </div>
+    `).join('');
+  } catch {
+    box.innerHTML = '<p style="text-align:center;color:var(--muted);padding:1.5rem">Could not load rankings.</p>';
+  }
+}
+document.addEventListener('DOMContentLoaded', () => loadLb('athletes', null));
+</script>
 {% endblock %}

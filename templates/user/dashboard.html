@@ -6,7 +6,7 @@
     <h1 class="page-title">Dashboard</h1>
     <p class="page-sub">{{ current_user.username }}</p>
   </div>
-  <div class="header-badge rank-{{ rank | lower }}">{{ rank }}</div>
+  <div class="header-badge rank-{{ rank|lower }}">{{ rank }}</div>
 </div>
 
 {# ── Score Ring ── #}
@@ -15,7 +15,7 @@
     <svg class="score-ring" viewBox="0 0 120 120">
       <circle cx="60" cy="60" r="52" fill="none" stroke="#1a1a1a" stroke-width="8"/>
       <circle cx="60" cy="60" r="52" fill="none" stroke="#D4AF37" stroke-width="8"
-              stroke-dasharray="{{ (score / 100 * 326.7) | round(1) }} 326.7"
+              stroke-dasharray="{{ (score/100*326.7)|round(1) }} 326.7"
               stroke-dashoffset="81.7" stroke-linecap="round"/>
     </svg>
     <div class="score-inner">
@@ -42,9 +42,27 @@
   <canvas id="weekChart" height="80"></canvas>
 </div>
 
+{# ── Assigned Programs ── #}
+{% if programs %}
+<div class="card">
+  <h3 class="card-title">📋 My Programs</h3>
+  {% for p in programs %}
+  <div class="assigned-prog-row">
+    <div class="ap-icon">📋</div>
+    <div class="ap-info">
+      <span class="ap-name">{{ p.name }}</span>
+      <span class="ap-desc">{{ p.description[:60]+'…' if p.description and p.description|length>60 else p.description or '' }}</span>
+    </div>
+    <a href="/user/workouts" class="btn btn-sm btn-ghost">View</a>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 {# ── Today's Goals ── #}
 <h2 class="section-title">Today's Goals</h2>
 <div class="goals-grid">
+
   <div class="goal-card">
     <div class="goal-header">
       <span class="goal-icon">💪</span>
@@ -66,9 +84,9 @@
       <span class="goal-pts">20 pts</span>
     </div>
     <div class="progress-bar-wrap">
-      <div class="progress-bar" style="width: {{ [((logs.protein / logs.protein_goal) * 100) | round, 100] | min }}%"></div>
+      <div class="progress-bar" style="width:{{ [((logs.protein/logs.protein_goal)*100)|round,100]|min }}%"></div>
     </div>
-    <div class="goal-meta">{{ logs.protein }}g / {{ logs.protein_goal }}g</div>
+    <div class="goal-meta">{{ logs.protein|int }}g / {{ logs.protein_goal }}g</div>
     <a href="/user/nutrition" class="btn btn-sm btn-ghost">Add Protein</a>
   </div>
 
@@ -79,22 +97,16 @@
       <span class="goal-pts">15 pts</span>
     </div>
     <div class="progress-bar-wrap">
-      <div class="progress-bar" style="width: {{ [((logs.water / logs.water_goal) * 100) | round, 100] | min }}%"></div>
+      <div class="progress-bar" style="width:{{ [((logs.water/logs.water_goal)*100)|round,100]|min }}%"></div>
     </div>
     <div class="goal-meta">{{ logs.water }}ml / {{ logs.water_goal }}ml</div>
     <div class="quick-btns">
+      {% for amt, label in [(250,'+250ml'),(500,'+500ml'),(1000,'+1L')] %}
       <form method="POST" action="/user/water" style="display:inline">
-        <input type="hidden" name="amount_ml" value="250" />
-        <button class="btn btn-sm btn-ghost">+250</button>
+        <input type="hidden" name="amount_ml" value="{{ amt }}" />
+        <button class="btn btn-sm btn-ghost">{{ label }}</button>
       </form>
-      <form method="POST" action="/user/water" style="display:inline">
-        <input type="hidden" name="amount_ml" value="500" />
-        <button class="btn btn-sm btn-ghost">+500</button>
-      </form>
-      <form method="POST" action="/user/water" style="display:inline">
-        <input type="hidden" name="amount_ml" value="1000" />
-        <button class="btn btn-sm btn-ghost">+1L</button>
-      </form>
+      {% endfor %}
     </div>
   </div>
 
@@ -105,7 +117,7 @@
       <span class="goal-pts">20 pts</span>
     </div>
     <div class="progress-bar-wrap">
-      <div class="progress-bar" style="width: {{ [((logs.sleep / logs.sleep_goal) * 100) | round, 100] | min }}%"></div>
+      <div class="progress-bar" style="width:{{ [((logs.sleep/logs.sleep_goal)*100)|round,100]|min }}%"></div>
     </div>
     <div class="goal-meta">{{ logs.sleep }}h / {{ logs.sleep_goal }}h</div>
     <button class="btn btn-sm btn-ghost" onclick="openModal('sleepModal')">Log Sleep</button>
@@ -118,30 +130,22 @@
       <span class="goal-pts">15 pts</span>
     </div>
     <div class="progress-bar-wrap">
-      <div class="progress-bar" style="width: {{ [((logs.steps / logs.steps_goal) * 100) | round, 100] | min }}%"></div>
+      <div class="progress-bar" style="width:{{ [((logs.steps/logs.steps_goal)*100)|round,100]|min }}%"></div>
     </div>
     <div class="goal-meta">{{ "{:,}".format(logs.steps) }} / {{ "{:,}".format(logs.steps_goal) }}</div>
     <button class="btn btn-sm btn-ghost" onclick="openModal('stepsModal')">Log Steps</button>
   </div>
+
 </div>
 
-{# ── Sleep Modal ── #}
+{# ── Modals ── #}
 <div class="modal" id="sleepModal">
   <div class="modal-card">
     <h3>Log Sleep</h3>
     <form method="POST" action="/user/sleep">
-      <div class="form-group">
-        <label>Hours slept</label>
-        <input type="number" name="hours" step="0.5" min="0" max="24" placeholder="7.5" required />
-      </div>
-      <div class="form-group">
-        <label>Sleep quality</label>
-        <select name="quality">
-          <option value="great">Great</option>
-          <option value="good">Good</option>
-          <option value="fair">Fair</option>
-          <option value="poor">Poor</option>
-        </select>
+      <div class="form-group"><label>Hours slept</label><input type="number" name="hours" step="0.5" min="0" max="24" placeholder="7.5" required /></div>
+      <div class="form-group"><label>Sleep quality</label>
+        <select name="quality"><option value="great">Great</option><option value="good">Good</option><option value="fair">Fair</option><option value="poor">Poor</option></select>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" onclick="closeModal('sleepModal')">Cancel</button>
@@ -151,15 +155,11 @@
   </div>
 </div>
 
-{# ── Steps Modal ── #}
 <div class="modal" id="stepsModal">
   <div class="modal-card">
     <h3>Log Steps</h3>
     <form method="POST" action="/user/steps">
-      <div class="form-group">
-        <label>Steps today</label>
-        <input type="number" name="steps" min="0" max="100000" placeholder="8000" required />
-      </div>
+      <div class="form-group"><label>Steps today</label><input type="number" name="steps" min="0" max="100000" placeholder="8000" required /></div>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" onclick="closeModal('stepsModal')">Cancel</button>
         <button type="submit" class="btn btn-gold">Save</button>
@@ -167,32 +167,23 @@
     </form>
   </div>
 </div>
-
 {% endblock %}
+
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 fetch('/api/user/scores/weekly').then(r=>r.json()).then(data=>{
-  const ctx = document.getElementById('weekChart').getContext('2d');
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: data.map(d => d.date.slice(5)),
-      datasets: [{
-        data: data.map(d => d.score),
-        backgroundColor: data.map(d => d.score >= 80 ? '#D4AF37' : '#2a2a2a'),
-        borderRadius: 6,
-        borderSkipped: false,
-      }]
+  new Chart(document.getElementById('weekChart').getContext('2d'), {
+    type:'bar',
+    data:{
+      labels: data.map(d=>d.date.slice(5)),
+      datasets:[{data:data.map(d=>d.score),
+        backgroundColor:data.map(d=>d.score>=80?'#D4AF37':'#2a2a2a'),
+        borderRadius:6,borderSkipped:false}]
     },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: { min: 0, max: 100, grid: { color: '#1a1a1a' }, ticks: { color: '#888' } },
-        x: { grid: { display: false }, ticks: { color: '#888' } }
-      }
-    }
+    options:{responsive:true,plugins:{legend:{display:false}},
+      scales:{y:{min:0,max:100,grid:{color:'#1a1a1a'},ticks:{color:'#888'}},
+              x:{grid:{display:false},ticks:{color:'#888'}}}}
   });
 });
 </script>

@@ -3,66 +3,120 @@
 {% block content %}
 <div class="page-header">
   <h1 class="page-title">Messages</h1>
-  <button class="btn btn-gold btn-sm" onclick="openModal('newMsgModal')">+ New Message</button>
+  <button class="btn btn-gold btn-sm" onclick="openModal('broadcastModal')">📢 Broadcast</button>
 </div>
 
-<div class="messages-list">
-  {% for msg in messages %}
-  <div class="message-card {% if not msg.read %}msg-unread{% endif %}">
-    <div class="msg-recipient">→ {{ msg.recipient_username }}</div>
-    <div class="msg-content">{{ msg.content }}</div>
-    <div class="msg-time">{{ msg.created_at.strftime('%b %d, %H:%M') if msg.created_at else '' }}</div>
-  </div>
-  {% else %}
-  <div class="empty-state">
-    <div class="empty-icon">💬</div>
-    <h3>No messages yet</h3>
-    <p>Send messages to your clients to keep them motivated.</p>
-  </div>
-  {% endfor %}
-</div>
+<div class="inbox-layout">
 
-<div class="modal" id="newMsgModal">
-  <div class="modal-card">
-    <h3>New Message</h3>
-    <form method="POST" action="/trainer/messages">
-      <div class="form-group">
-        <label>Message Type</label>
-        <div class="role-toggle">
-          <button type="button" class="role-btn active" onclick="setMsgType('individual', this)">Individual</button>
-          <button type="button" class="role-btn" onclick="setMsgType('broadcast', this)">Broadcast All</button>
+  {# ── Conversation list ── #}
+  <div class="inbox-sidebar {% if active_client_id %}inbox-hidden-mobile{% endif %}">
+    {% if conversations %}
+      {% for conv in conversations %}
+      <a href="/trainer/messages?client={{ conv.client._id }}"
+         class="inbox-thread {% if conv.client._id|string == active_client_id %}active{% endif %}">
+        <div class="it-avatar">
+          {% if conv.client.avatar_url %}<img src="{{ conv.client.avatar_url }}" />
+          {% else %}<div class="it-initials">{{ conv.client.username[0]|upper }}</div>{% endif %}
+          {% if conv.unread %}<span class="it-badge">{{ conv.unread }}</span>{% endif %}
         </div>
-        <input type="hidden" name="msg_type" id="msgType" value="individual" />
+        <div class="it-info">
+          <span class="it-name">{{ conv.client.username }}</span>
+          {% if conv.latest %}
+          <span class="it-preview">
+            {{ '→ ' if conv.latest.direction=='trainer_to_user' else '← ' }}{{ conv.latest.content[:45]+'…' if conv.latest.content|length > 45 else conv.latest.content }}
+          </span>
+          {% endif %}
+        </div>
+        {% if conv.latest and conv.latest.created_at %}
+        <span class="it-time">{{ conv.latest.created_at.strftime('%b %d') }}</span>
+        {% endif %}
+      </a>
+      {% endfor %}
+    {% else %}
+      <div class="inbox-empty">
+        <div style="font-size:2.5rem;margin-bottom:.75rem">💬</div>
+        <p>No conversations yet.<br/>Add clients to message them.</p>
       </div>
-      <div class="form-group" id="recipientGroup">
+    {% endif %}
+  </div>
+
+  {# ── Active thread ── #}
+  <div class="inbox-thread-pane {% if not active_client_id %}inbox-hidden-mobile{% endif %}">
+    {% if active_client_id and active_client %}
+    <div class="thread-header">
+      <a href="/trainer/messages" class="back-btn">← Back</a>
+      <div class="thread-trainer-info">
+        {% if active_client.avatar_url %}
+          <img src="{{ active_client.avatar_url }}" class="thread-trainer-avatar" />
+        {% else %}
+          <div class="thread-trainer-initials">{{ active_client.username[0]|upper }}</div>
+        {% endif %}
+        <span>{{ active_client.username }}</span>
+      </div>
+      <a href="/trainer/clients/{{ active_client_id }}" class="btn btn-sm btn-ghost" style="margin-left:auto">View Profile</a>
+    </div>
+
+    <div class="thread-messages" id="threadMessages">
+      {% for msg in thread %}
+      <div class="msg-bubble {% if msg.direction=='trainer_to_user' %}msg-out{% else %}msg-in{% endif %}">
+        <div class="msg-text">{{ msg.content }}</div>
+        <div class="msg-ts">{{ msg.created_at.strftime('%b %d, %H:%M') if msg.created_at else '' }}</div>
+      </div>
+      {% else %}
+      <div style="text-align:center;color:var(--muted);padding:2rem">No messages yet. Say hello!</div>
+      {% endfor %}
+    </div>
+
+    <div class="thread-compose">
+      <form method="POST" action="/trainer/messages" id="replyForm">
+        <input type="hidden" name="msg_type" value="individual" />
+        <input type="hidden" name="recipient_id" value="{{ active_client_id }}" />
+        <textarea name="content" id="replyBox" placeholder="Write a message…" rows="2" required></textarea>
+        <button type="submit" class="btn btn-gold">Send</button>
+      </form>
+    </div>
+
+    {% else %}
+    <div class="thread-empty">
+      <div style="font-size:3rem">💬</div>
+      <h3>Select a conversation</h3>
+      <p>Choose a client from the list, or broadcast to your whole team.</p>
+      <button class="btn btn-gold" onclick="openModal('broadcastModal')">📢 Broadcast</button>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# ── Broadcast Modal ── #}
+<div class="modal" id="broadcastModal">
+  <div class="modal-card">
+    <h3>Broadcast Message</h3>
+    <form method="POST" action="/trainer/messages">
+      <input type="hidden" name="msg_type" value="broadcast" />
+      <div class="form-group">
         <label>Recipients</label>
-        <div class="checkbox-list">
-          {% for c in clients %}
-          <label class="checkbox-label">
-            <input type="checkbox" name="recipients" value="{{ c._id }}" />
-            {{ c.username }}
-          </label>
-          {% endfor %}
+        <div style="font-size:.85rem;color:var(--muted)">
+          Sending to all {{ clients|length }} client{{ 's' if clients|length!=1 else '' }}
         </div>
       </div>
       <div class="form-group">
         <label>Message</label>
-        <textarea name="content" rows="4" placeholder="Keep pushing! You're doing great..." required></textarea>
+        <textarea name="content" rows="4" placeholder="Team update, motivation, announcement…" required></textarea>
       </div>
       <div class="modal-actions">
-        <button type="button" class="btn btn-ghost" onclick="closeModal('newMsgModal')">Cancel</button>
-        <button type="submit" class="btn btn-gold">Send</button>
+        <button type="button" class="btn btn-ghost" onclick="closeModal('broadcastModal')">Cancel</button>
+        <button type="submit" class="btn btn-gold">Send to All</button>
       </div>
     </form>
   </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
-function setMsgType(type, btn) {
-  document.getElementById('msgType').value = type;
-  document.querySelectorAll('#newMsgModal .role-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('recipientGroup').style.display = type === 'broadcast' ? 'none' : 'block';
-}
+window.addEventListener('load', () => {
+  const p = document.getElementById('threadMessages');
+  if (p) p.scrollTop = p.scrollHeight;
+});
 </script>
 {% endblock %}

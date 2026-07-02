@@ -5,9 +5,23 @@
   <div class="auth-card auth-card-wide">
     <div class="auth-logo"><span class="logo-text">AURON</span></div>
     <h2 class="auth-title">Create Athlete Account</h2>
-    <p class="auth-sub">Start your accountability journey</p>
+
+    {% if trainer_ref %}
+    <div class="invite-banner">
+      {% if trainer_ref.avatar_url %}
+        <img src="{{ trainer_ref.avatar_url }}" class="invite-avatar" />
+      {% else %}
+        <div class="invite-avatar-initials">{{ trainer_ref.username[0]|upper }}</div>
+      {% endif %}
+      <div>
+        <strong>{{ trainer_ref.business_name or trainer_ref.username }}</strong> invited you to join their team!
+        <div style="font-size:.78rem;color:var(--muted)">You'll be added automatically on signup.</div>
+      </div>
+    </div>
+    {% endif %}
 
     <form method="POST" action="/signup/user" class="auth-form">
+      <input type="hidden" name="ref_code" value="{{ ref_code }}" />
       <div class="form-grid-2">
         <div class="form-group">
           <label>Username</label>
@@ -18,7 +32,7 @@
           <input type="email" name="email" required placeholder="your@email.com" />
         </div>
         <div class="form-group">
-          <label>Phone Number</label>
+          <label>Phone</label>
           <input type="tel" name="phone" placeholder="+91 98765 43210" />
         </div>
         <div class="form-group">
@@ -60,6 +74,27 @@
           <label>Height (cm)</label>
           <input type="number" name="height" placeholder="175" />
         </div>
+        <div class="form-group">
+          <label>Country</label>
+          <select id="selCountry" onchange="onLocCountryChange(this)">
+            <option value="">Select Country</option>
+          </select>
+          <input type="hidden" name="country" id="hidCountry" />
+        </div>
+        <div class="form-group">
+          <label>State</label>
+          <select id="selState" onchange="onLocStateChange(this)">
+            <option value="">Select State</option>
+          </select>
+          <input type="hidden" name="state" id="hidState" />
+        </div>
+        <div class="form-group form-full">
+          <label>City</label>
+          <select id="selCity" onchange="onLocCityChange(this)">
+            <option value="">Select City</option>
+          </select>
+          <input type="hidden" name="city" id="hidCity" />
+        </div>
       </div>
       <button type="submit" class="btn btn-gold btn-block" style="margin-top:1.5rem">Create Account</button>
     </form>
@@ -67,4 +102,78 @@
     <p class="auth-footer">Are you a trainer? <a href="/signup/trainer">Trainer signup</a></p>
   </div>
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+/* ══════════════════════════════════════════════════════════════
+   Location select cascade (Country → State → City)
+   Selects use CODE as value (reliable for fetching next level).
+   Hidden inputs carry the human-readable NAME that actually gets
+   submitted to the backend (e.g. "India", "Maharashtra", "Mumbai").
+   ══════════════════════════════════════════════════════════════ */
+
+async function locLoadCountries() {
+  const sel = document.getElementById('selCountry');
+  if (!sel) return;
+  try {
+    const r = await fetch('/static/locations/countries.json');
+    const countries = await r.json();           // [{code, name, emoji}, …]
+    countries.forEach(c => {
+      sel.appendChild(new Option(c.name, c.code));
+    });
+  } catch(e) { console.warn('Could not load countries', e); }
+}
+
+async function locLoadStates(countryCode) {
+  const sel = document.getElementById('selState');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Select State</option>';
+  if (!countryCode) return;
+  try {
+    const r = await fetch(`/static/locations/${countryCode}/states.json`);
+    if (!r.ok) return;
+    const states = await r.json();               // [{code, name}, …]
+    states.forEach(s => sel.appendChild(new Option(s.name, s.code)));
+  } catch(e) { console.warn('No states for', countryCode, e); }
+}
+
+async function locLoadCities(countryCode, stateCode) {
+  const sel = document.getElementById('selCity');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Select City</option>';
+  if (!stateCode) return;
+  try {
+    const r = await fetch(`/static/locations/${countryCode}/${stateCode}.json`);
+    if (!r.ok) return;
+    const cities = await r.json();               // ["Toronto", "Vancouver", …] OR [{name}, …]
+    cities.forEach(c => {
+      const name = typeof c === 'string' ? c : c.name;
+      sel.appendChild(new Option(name, name));
+    });
+  } catch(e) { console.warn('No cities for', stateCode, e); }
+}
+
+function onLocCountryChange(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  document.getElementById('hidCountry').value = opt && opt.value ? opt.text : '';
+  document.getElementById('hidState').value = '';
+  document.getElementById('hidCity').value = '';
+  document.getElementById('selCity').innerHTML = '<option value="">Select City</option>';
+  locLoadStates(opt ? opt.value : '');
+}
+
+function onLocStateChange(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  document.getElementById('hidState').value = opt && opt.value ? opt.text : '';
+  document.getElementById('hidCity').value = '';
+  const countryCode = document.getElementById('selCountry').value;
+  locLoadCities(countryCode, opt ? opt.value : '');
+}
+
+function onLocCityChange(sel) {
+  document.getElementById('hidCity').value = sel.value;
+}
+
+locLoadCountries();
+</script>
 {% endblock %}

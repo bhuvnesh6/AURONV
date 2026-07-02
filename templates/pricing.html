@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Pricing — AURON{% endblock %}
+{% block public_content %}
+<div class="pricing-page">
+  <nav class="landing-nav">
+    <span class="logo-text">AURON</span>
+    <div class="landing-nav-links">
+      <a href="/login" class="btn btn-ghost">Login</a>
+      <a href="/signup/user" class="btn btn-gold">Get Started</a>
+    </div>
+  </nav>
+
+  <div class="pricing-hero">
+    <div class="hero-badge">Simple Pricing</div>
+    <h1 class="pricing-title">Invest in your <span class="gold">consistency</span></h1>
+    <p class="pricing-sub">One plan. Full access. No hidden fees.</p>
+
+    <div class="billing-toggle">
+      <button class="btog-btn active" id="btnMonthly" onclick="showPlans('monthly')">Monthly</button>
+      <button class="btog-btn" id="btnQuarterly" onclick="showPlans('quarterly')">3 Months <span class="discount-chip">20% off</span></button>
+      <button class="btog-btn" id="btnAnnual" onclick="showPlans('annual')">Annual <span class="discount-chip">20% off</span></button>
+    </div>
+  </div>
+
+  <div class="pricing-cards">
+
+    {# Free #}
+
+    {# Pro #}
+    <div class="pricing-card pricing-card-featured">
+      <div class="pc-popular">Most Popular</div>
+      <div class="pc-header">
+        <div class="pc-name">Pro</div>
+        <div class="pc-price">
+          <span class="pc-amount" id="proPrice">$9.99</span>
+          <span class="pc-period" id="proPeriod">/mo</span>
+        </div>
+        <div class="pc-desc" id="proDesc">Billed monthly</div>
+        <div class="pc-savings" id="proSavings" style="display:none"></div>
+      </div>
+      <ul class="pc-features">
+        <li>✓ Everything in Free</li>
+        <li>✓ Full history (unlimited)</li>
+        <li>✓ Progress timeline & photos</li>
+        <li>✓ Inbox — message trainers</li>
+        <li>✓ City, state & country leaderboards</li>
+        <li>✓ Team leaderboard</li>
+        <li>✓ Assigned training programs</li>
+        <li>✓ Trainer connection</li>
+        <li>✓ Priority support</li>
+      </ul>
+      <a href="/signup/user" class="btn btn-gold btn-block" id="proCtaBtn">Get Started</a>
+    </div>
+
+    {# Trainer #}
+    <div class="pricing-card">
+      <div class="pc-header">
+        <div class="pc-name">Trainer</div>
+        <div class="pc-price">
+          <span class="pc-amount" id="trainerPrice">$9.99</span>
+          <span class="pc-period" id="trainerPeriod">/mo</span>
+        </div>
+        <div class="pc-desc" id="trainerDesc">Billed monthly</div>
+        <div class="pc-savings" id="trainerSavings" style="display:none"></div>
+      </div>
+      <ul class="pc-features">
+        <li>✓ Full trainer dashboard</li>
+        <li>✓ Unlimited clients</li>
+        <li>✓ Compliance tracking</li>
+        <li>✓ Broadcast messaging</li>
+        <li>✓ Program builder & assignment</li>
+        <li>✓ Trainer invite link</li>
+        <li>✓ Team leaderboard</li>
+        <li>✓ At-risk client alerts</li>
+        <li>✓ Priority support</li>
+      </ul>
+      <a href="/signup/trainer" class="btn btn-outline btn-block" id="trainerCtaBtn">Start as Trainer</a>
+    </div>
+
+  </div>
+
+  <div class="pricing-trust">
+    <div class="trust-item">🔒 Secure payments</div>
+    <div class="trust-item">💳 Cancel anytime</div>
+    <div class="trust-item">🇺🇸 US & Canada</div>
+    <div class="trust-item">📧 support@auron.app</div>
+  </div>
+
+  <div class="pricing-faq">
+    <h2 style="text-align:center;margin-bottom:1.5rem;font-size:1.3rem">FAQ</h2>
+    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Can I cancel anytime? <span>+</span></div>
+      <div class="faq-a">Yes. Cancel from your account settings at any time. No questions asked.</div></div>
+    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Is there a free trial? <span>+</span></div>
+      <div class="faq-a">The Free plan is free forever. Upgrade to Pro when you're ready for more.</div></div>
+    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">What payment methods do you accept? <span>+</span></div>
+      <div class="faq-a">We accept all major credit and debit cards (Visa, Mastercard, Amex) and PayPal.</div></div>
+    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Do discounts apply to both Pro and Trainer plans? <span>+</span></div>
+      <div class="faq-a">Yes. The 20% discount applies to both plans on the 3-month and annual billing cycles.</div></div>
+  </div>
+
+  <footer class="landing-footer">
+    <span class="logo-text">AURON</span>
+    <div class="footer-links">
+      <a href="/terms">Terms of Service</a>
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/refund">Refund Policy</a>
+    </div>
+  </footer>
+</div>
+
+<script>
+const MONTHLY    = { price: 9.99,  period: '/mo',  desc: 'Billed monthly',                savings: '' };
+const QUARTERLY  = { price: 7.99,  period: '/mo',  desc: 'Billed $23.97 every 3 months', savings: 'Save $11.97/year (20% off)' };
+const ANNUAL     = { price: 7.99,  period: '/mo',  desc: 'Billed $95.88/year',            savings: 'Save $23.88/year (20% off)' };
+
+function showPlans(type) {
+  const plan = type === 'quarterly' ? QUARTERLY : type === 'annual' ? ANNUAL : MONTHLY;
+  document.querySelectorAll('.btog-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn' + type.charAt(0).toUpperCase() + type.slice(1)).classList.add('active');
+
+  ['pro','trainer'].forEach(prefix => {
+    document.getElementById(prefix + 'Price').textContent  = '$' + plan.price;
+    document.getElementById(prefix + 'Period').textContent = plan.period;
+    document.getElementById(prefix + 'Desc').textContent   = plan.desc;
+    const savEl = document.getElementById(prefix + 'Savings');
+    if (plan.savings) { savEl.textContent = plan.savings; savEl.style.display = ''; }
+    else              { savEl.style.display = 'none'; }
+  });
+}
+
+function toggleFaq(el) {
+  const a = el.nextElementSibling;
+  const open = a.style.display === 'block';
+  document.querySelectorAll('.faq-a').forEach(x => x.style.display = 'none');
+  document.querySelectorAll('.faq-q span').forEach(x => x.textContent = '+');
+  if (!open) { a.style.display = 'block'; el.querySelector('span').textContent = '−'; }
+}
+</script>
+{% endblock %}

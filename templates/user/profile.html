@@ -2,22 +2,18 @@
 {% block title %}Profile — AURON{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h1 class="page-title">Profile</h1>
+  <h1 class="page-title">My Profile</h1>
 </div>
 
-{# ── Avatar Section ── #}
+{# ── Avatar ── #}
 <div class="profile-hero">
-  <div class="avatar-upload-wrap" id="avatarWrap">
-
-    {# Avatar display #}
+  <div class="avatar-upload-wrap">
     <div class="avatar-ring" id="avatarRing">
       {% if user.avatar_url %}
-        <img src="{{ user.avatar_url }}" alt="{{ user.username }}" class="avatar-img" id="avatarImg" />
+        <img src="{{ user.avatar_url }}" class="avatar-img" id="avatarImg" />
       {% else %}
-        <div class="avatar-initials" id="avatarInitials">{{ user.username[0] | upper }}</div>
+        <div class="avatar-initials" id="avatarInitials">{{ user.username[0]|upper }}</div>
       {% endif %}
-
-      {# Camera overlay trigger #}
       <label for="avatarInput" class="avatar-overlay" title="Change photo">
         <svg viewBox="0 0 24 24" width="22" height="22">
           <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
@@ -25,60 +21,94 @@
         </svg>
       </label>
     </div>
-
-    {# Hidden file input — submits instantly via JS #}
-    <input type="file" id="avatarInput" name="avatar" accept="image/jpeg,image/png,image/webp"
-           style="display:none" />
-
-    {# Upload form — submitted programmatically #}
+    <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/webp" style="display:none" />
     <form id="avatarForm" method="POST" action="/user/profile/avatar" enctype="multipart/form-data" style="display:none">
       <input type="file" name="avatar" id="avatarFormFile" />
     </form>
-
-    {# Name + rank below avatar #}
     <div class="avatar-meta">
       <h2 class="profile-name">{{ user.username }}</h2>
       <span class="profile-email">{{ user.email }}</span>
-      <div class="rank-badge rank-{{ rank | lower }}" style="margin-top:.5rem">{{ rank }}</div>
+      <div class="rank-badge rank-{{ rank|lower }}" style="margin-top:.5rem">{{ rank }}</div>
     </div>
-
-    {# Remove photo link — only shown if photo exists #}
     {% if user.avatar_url %}
     <form method="POST" action="/user/profile/avatar/remove" style="margin-top:.5rem">
-      <button type="submit" class="btn-text-danger"
-              onclick="return confirm('Remove your profile photo?')">Remove photo</button>
+      <button type="submit" class="btn-text-danger" onclick="return confirm('Remove photo?')">Remove photo</button>
     </form>
     {% endif %}
-
-  </div>
-
-  {# Upload progress overlay #}
-  <div class="avatar-upload-progress" id="uploadProgress" style="display:none">
-    <div class="upload-spinner"></div>
-    <span>Uploading…</span>
   </div>
 </div>
 
 {# ── Stats ── #}
 <div class="stats-row">
-  <div class="stat-box">
-    <span class="stat-big">{{ score }}</span>
-    <span class="stat-small">AURON Score</span>
-  </div>
-  <div class="stat-box">
-    <span class="stat-big">{{ streak.current }}🔥</span>
-    <span class="stat-small">Current Streak</span>
-  </div>
-  <div class="stat-box">
-    <span class="stat-big">{{ streak.longest }}</span>
-    <span class="stat-small">Best Streak</span>
-  </div>
+  <div class="stat-box"><span class="stat-big">{{ score }}</span><span class="stat-small">AURON Score</span></div>
+  <div class="stat-box"><span class="stat-big">{{ streak.current }}🔥</span><span class="stat-small">Streak</span></div>
+  <div class="stat-box"><span class="stat-big">{{ streak.longest }}</span><span class="stat-small">Best Streak</span></div>
 </div>
 
-{# ── Goals & Personal Info ── #}
+{# ── Full Profile Edit ── #}
 <div class="card">
-  <h3 class="card-title">Daily Goals</h3>
+  <h3 class="card-title">Personal Info</h3>
   <form method="POST" action="/user/profile">
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label>Age</label>
+        <input type="number" name="age" value="{{ user.age or '' }}" placeholder="25" min="13" max="100" />
+      </div>
+      <div class="form-group">
+        <label>Gender</label>
+        <select name="gender">
+          <option value="">Select</option>
+          <option value="male"   {% if user.gender=='male' %}selected{% endif %}>Male</option>
+          <option value="female" {% if user.gender=='female' %}selected{% endif %}>Female</option>
+          <option value="other"  {% if user.gender=='other' %}selected{% endif %}>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Weight (kg)</label>
+        <input type="number" name="weight" value="{{ user.weight or '' }}" step="0.1" placeholder="75" />
+      </div>
+      <div class="form-group">
+        <label>Height (cm)</label>
+        <input type="number" name="height" value="{{ user.height or '' }}" placeholder="175" />
+      </div>
+      <div class="form-group">
+        <label>Fitness Goal</label>
+        <select name="goal">
+          <option value="lose_fat"     {% if user.goal=='lose_fat' %}selected{% endif %}>Lose Fat</option>
+          <option value="build_muscle" {% if user.goal=='build_muscle' %}selected{% endif %}>Build Muscle</option>
+          <option value="maintain"     {% if user.goal=='maintain' %}selected{% endif %}>Maintain</option>
+          <option value="performance"  {% if user.goal=='performance' %}selected{% endif %}>Performance</option>
+        </select>
+      </div>
+    </div>
+
+    <h3 class="card-title" style="margin-top:1.5rem">📍 Location</h3>
+    <p style="font-size:.8rem;color:var(--muted);margin-bottom:1rem">Used for city, state and country leaderboards</p>
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label>Country</label>
+        <select id="selCountry" onchange="onLocCountryChange(this)">
+          <option value="">Select Country</option>
+        </select>
+        <input type="hidden" name="country" id="hidCountry" value="{{ user.country or '' }}" />
+      </div>
+      <div class="form-group">
+        <label>State / Province</label>
+        <select id="selState" onchange="onLocStateChange(this)">
+          <option value="">Select State</option>
+        </select>
+        <input type="hidden" name="state" id="hidState" value="{{ user.state or '' }}" />
+      </div>
+      <div class="form-group form-full">
+        <label>City</label>
+        <select id="selCity" onchange="onLocCityChange(this)">
+          <option value="">Select City</option>
+        </select>
+        <input type="hidden" name="city" id="hidCity" value="{{ user.city or '' }}" />
+      </div>
+    </div>
+
+    <h3 class="card-title" style="margin-top:1.5rem">🎯 Daily Goals</h3>
     <div class="form-grid-2">
       <div class="form-group">
         <label>Protein Goal (g)</label>
@@ -96,77 +126,128 @@
         <label>Steps Goal</label>
         <input type="number" name="steps_goal" value="{{ user.steps_goal or 8000 }}" min="1000" max="30000" step="500" />
       </div>
-      <div class="form-group">
-        <label>Fitness Goal</label>
-        <select name="goal">
-          <option value="lose_fat"      {% if user.goal == 'lose_fat' %}selected{% endif %}>Lose Fat</option>
-          <option value="build_muscle"  {% if user.goal == 'build_muscle' %}selected{% endif %}>Build Muscle</option>
-          <option value="maintain"      {% if user.goal == 'maintain' %}selected{% endif %}>Maintain</option>
-          <option value="performance"   {% if user.goal == 'performance' %}selected{% endif %}>Performance</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Weight (kg)</label>
-        <input type="number" name="weight" value="{{ user.weight or '' }}" step="0.1" placeholder="75" />
-      </div>
-      <div class="form-group">
-        <label>Height (cm)</label>
-        <input type="number" name="height" value="{{ user.height or '' }}" placeholder="175" />
-      </div>
     </div>
-    <button type="submit" class="btn btn-gold" style="margin-top:1rem">Save Changes</button>
+
+    <button type="submit" class="btn btn-gold" style="margin-top:1.25rem">Save All Changes</button>
   </form>
 </div>
-
 {% endblock %}
-
 {% block scripts %}
 <script>
-/* ── Avatar upload — instant on file pick ── */
 const avatarInput    = document.getElementById('avatarInput');
-const avatarForm     = document.getElementById('avatarForm');
 const avatarFormFile = document.getElementById('avatarFormFile');
-const avatarImg      = document.getElementById('avatarImg');
-const avatarInitials = document.getElementById('avatarInitials');
-const uploadProgress = document.getElementById('uploadProgress');
-const avatarRing     = document.getElementById('avatarRing');
-
-avatarInput.addEventListener('change', function () {
+const avatarForm     = document.getElementById('avatarForm');
+avatarInput.addEventListener('change', function() {
   const file = this.files[0];
   if (!file) return;
-
-  // 5 MB client-side guard
-  if (file.size > 5 * 1024 * 1024) {
-    alert('File is too large. Maximum size is 5 MB.');
-    this.value = '';
-    return;
-  }
-
-  // Instant preview before upload
+  if (file.size > 5*1024*1024) { alert('Max 5 MB'); return; }
   const reader = new FileReader();
-  reader.onload = function (e) {
-    if (avatarImg) {
-      avatarImg.src = e.target.result;
-    } else if (avatarInitials) {
-      // Replace initials div with an img
-      const img = document.createElement('img');
-      img.src = e.target.result;
-      img.className = 'avatar-img';
-      img.id = 'avatarImg';
-      avatarInitials.replaceWith(img);
-    }
-    avatarRing.classList.add('avatar-uploading');
+  reader.onload = e => {
+    const img = document.getElementById('avatarImg');
+    const ini = document.getElementById('avatarInitials');
+    if (img) img.src = e.target.result;
+    else if (ini) { const n = document.createElement('img'); n.src = e.target.result; n.className='avatar-img'; n.id='avatarImg'; ini.replaceWith(n); }
+    document.getElementById('avatarRing').classList.add('avatar-uploading');
   };
   reader.readAsDataURL(file);
-
-  // Show progress overlay
-  uploadProgress.style.display = 'flex';
-
-  // Transfer file to the real hidden form and submit
-  const dt = new DataTransfer();
-  dt.items.add(file);
-  avatarFormFile.files = dt.files;
+  const dt = new DataTransfer(); dt.items.add(file); avatarFormFile.files = dt.files;
   avatarForm.submit();
 });
+
+/* ══════════════════════════════════════════════════════════════
+   Location select cascade (Country → State → City)
+   Selects use CODE as value (reliable for fetching next level).
+   Hidden inputs carry the human-readable NAME that actually gets
+   submitted to the backend (e.g. "India", "Maharashtra", "Mumbai").
+   ══════════════════════════════════════════════════════════════ */
+const _savedLoc = {
+  country: "{{ user.country or '' }}",
+  state:   "{{ user.state or '' }}",
+  city:    "{{ user.city or '' }}"
+};
+
+async function locLoadCountries() {
+  const sel = document.getElementById('selCountry');
+  if (!sel) return;
+  try {
+    const r = await fetch('/static/locations/countries.json');
+    const countries = await r.json();           // [{code, name, emoji}, …]
+    countries.forEach(c => {
+      sel.appendChild(new Option(c.name, c.code));
+    });
+    if (_savedLoc.country) {
+      const match = countries.find(c => c.name === _savedLoc.country);
+      if (match) {
+        sel.value = match.code;
+        document.getElementById('hidCountry').value = match.name;
+        await locLoadStates(match.code, true);
+      }
+    }
+  } catch(e) { console.warn('Could not load countries', e); }
+}
+
+async function locLoadStates(countryCode, restoring = false) {
+  const sel = document.getElementById('selState');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Select State</option>';
+  if (!countryCode) return;
+  try {
+    const r = await fetch(`/static/locations/${countryCode}/states.json`);
+    if (!r.ok) return;
+    const states = await r.json();               // [{code, name}, …]
+    states.forEach(s => sel.appendChild(new Option(s.name, s.code)));
+    if (restoring && _savedLoc.state) {
+      const match = states.find(s => s.name === _savedLoc.state);
+      if (match) {
+        sel.value = match.code;
+        document.getElementById('hidState').value = match.name;
+        await locLoadCities(countryCode, match.code, true);
+      }
+    }
+  } catch(e) { console.warn('No states for', countryCode, e); }
+}
+
+async function locLoadCities(countryCode, stateCode, restoring = false) {
+  const sel = document.getElementById('selCity');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Select City</option>';
+  if (!stateCode) return;
+  try {
+    const r = await fetch(`/static/locations/${countryCode}/${stateCode}.json`);
+    if (!r.ok) return;
+    const cities = await r.json();               // ["Toronto", "Vancouver", …] OR [{name}, …]
+    cities.forEach(c => {
+      const name = typeof c === 'string' ? c : c.name;
+      sel.appendChild(new Option(name, name));
+    });
+    if (restoring && _savedLoc.city) {
+      sel.value = _savedLoc.city;
+      document.getElementById('hidCity').value = _savedLoc.city;
+    }
+  } catch(e) { console.warn('No cities for', stateCode, e); }
+}
+
+function onLocCountryChange(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  document.getElementById('hidCountry').value = opt && opt.value ? opt.text : '';
+  document.getElementById('hidState').value = '';
+  document.getElementById('hidCity').value = '';
+  document.getElementById('selCity').innerHTML = '<option value="">Select City</option>';
+  locLoadStates(opt ? opt.value : '');
+}
+
+function onLocStateChange(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  document.getElementById('hidState').value = opt && opt.value ? opt.text : '';
+  document.getElementById('hidCity').value = '';
+  const countryCode = document.getElementById('selCountry').value;
+  locLoadCities(countryCode, opt ? opt.value : '');
+}
+
+function onLocCityChange(sel) {
+  document.getElementById('hidCity').value = sel.value;
+}
+
+locLoadCountries();
 </script>
 {% endblock %}

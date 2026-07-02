@@ -7,58 +7,64 @@
 </div>
 
 <div class="profile-hero">
-  <div class="avatar-large">{{ client.username[0] | upper }}</div>
-  <div class="profile-info">
-    <div class="rank-badge rank-{{ rank | lower }}">{{ rank }}</div>
-    <p class="profile-goal">{{ client.goal | replace('_', ' ') | title if client.goal else 'No goal set' }}</p>
+  <div style="display:flex;align-items:center;gap:1.25rem">
+    {% if client.avatar_url %}
+      <img src="{{ client.avatar_url }}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--gold)" />
+    {% else %}
+      <div class="avatar-large">{{ client.username[0]|upper }}</div>
+    {% endif %}
+    <div>
+      <h2 class="profile-name">{{ client.username }}</h2>
+      <p class="profile-goal">{{ client.goal|replace('_',' ')|title if client.goal else 'No goal set' }}</p>
+      <div style="display:flex;gap:.5rem;margin-top:.4rem;flex-wrap:wrap">
+        <div class="rank-badge rank-{{ rank|lower }}">{{ rank }}</div>
+        {% if client.city or client.country %}
+        <span style="font-size:.75rem;color:var(--muted);padding:.2rem .6rem;background:var(--surface2);border-radius:999px">
+          📍 {{ client.city or client.country }}
+        </span>
+        {% endif %}
+      </div>
+    </div>
   </div>
+  <a href="/trainer/messages?client={{ client._id }}" class="btn btn-gold btn-sm" style="margin-left:auto">💬 Message</a>
 </div>
 
 <div class="stats-row">
-  <div class="stat-box">
-    <span class="stat-big">{{ score }}</span>
-    <span class="stat-small">Today's Score</span>
-  </div>
-  <div class="stat-box">
-    <span class="stat-big">{{ streak.current }}🔥</span>
-    <span class="stat-small">Streak</span>
-  </div>
-  <div class="stat-box">
-    <span class="stat-big">{{ streak.longest }}</span>
-    <span class="stat-small">Best Streak</span>
-  </div>
+  <div class="stat-box"><span class="stat-big">{{ score }}</span><span class="stat-small">Today's Score</span></div>
+  <div class="stat-box"><span class="stat-big">{{ streak.current }}🔥</span><span class="stat-small">Streak</span></div>
+  <div class="stat-box"><span class="stat-big">{{ streak.longest }}</span><span class="stat-small">Best Streak</span></div>
 </div>
 
 <div class="card">
   <h3 class="card-title">7-Day Compliance</h3>
   <div class="compliance-bars">
+    {% for key, label in [('workout','Workout'),('protein','Protein'),('water','Water'),('sleep','Sleep'),('steps','Steps')] %}
     <div class="comp-row">
-      <span class="comp-label">Workout</span>
-      <div class="comp-bar"><div style="width:{{ compliance.workout }}%"></div></div>
-      <span class="comp-pct">{{ compliance.workout }}%</span>
+      <span class="comp-label">{{ label }}</span>
+      <div class="comp-bar"><div style="width:{{ compliance[key] }}%"></div></div>
+      <span class="comp-pct">{{ compliance[key] }}%</span>
     </div>
-    <div class="comp-row">
-      <span class="comp-label">Protein</span>
-      <div class="comp-bar"><div style="width:{{ compliance.protein }}%"></div></div>
-      <span class="comp-pct">{{ compliance.protein }}%</span>
-    </div>
-    <div class="comp-row">
-      <span class="comp-label">Water</span>
-      <div class="comp-bar"><div style="width:{{ compliance.water }}%"></div></div>
-      <span class="comp-pct">{{ compliance.water }}%</span>
-    </div>
-    <div class="comp-row">
-      <span class="comp-label">Sleep</span>
-      <div class="comp-bar"><div style="width:{{ compliance.sleep }}%"></div></div>
-      <span class="comp-pct">{{ compliance.sleep }}%</span>
-    </div>
-    <div class="comp-row">
-      <span class="comp-label">Steps</span>
-      <div class="comp-bar"><div style="width:{{ compliance.steps }}%"></div></div>
-      <span class="comp-pct">{{ compliance.steps }}%</span>
-    </div>
+    {% endfor %}
   </div>
 </div>
+
+{% if programs %}
+<div class="card">
+  <h3 class="card-title">📋 Assigned Programs</h3>
+  {% for p in programs %}
+  <div class="assigned-prog-row">
+    <div class="ap-icon">📋</div>
+    <div class="ap-info">
+      <span class="ap-name">{{ p.name }}</span>
+      <span class="ap-desc">{{ p.description[:60] if p.description else '' }}</span>
+    </div>
+    <form method="POST" action="/trainer/programs/{{ p._id }}/unassign/{{ client._id }}" style="display:inline">
+      <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Unassign?')">Unassign</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
 
 {% if workouts %}
 <div class="card">
@@ -67,7 +73,7 @@
   <div class="history-row">
     <span class="history-date">{{ w.date }}</span>
     <span class="history-val">{{ w.name }}</span>
-    <span class="history-cals">{{ w.duration_min }} min</span>
+    <span class="history-cals">{{ w.duration_min }} min · {{ "{:,.0f}".format(w.total_volume) }}kg vol</span>
   </div>
   {% endfor %}
 </div>
@@ -77,15 +83,29 @@
 <div class="card">
   <h3 class="card-title">Progress Photos</h3>
   <div class="photo-grid">
-    {% for p in progress %}
-    {% if p.photo_url %}
+    {% for p in progress %}{% if p.photo_url %}
     <div class="photo-item">
       <img src="{{ p.photo_url }}" alt="Progress" />
       <span class="photo-date">{{ p.date }}</span>
     </div>
-    {% endif %}
-    {% endfor %}
+    {% endif %}{% endfor %}
   </div>
+</div>
+{% endif %}
+
+{# ── Quick message thread ── #}
+{% if thread %}
+<div class="card">
+  <div class="card-title-row">
+    <h3 class="card-title">Recent Messages</h3>
+    <a href="/trainer/messages?client={{ client._id }}" class="link-sm">Open thread →</a>
+  </div>
+  {% for msg in thread[-3:] %}
+  <div class="msg-bubble {% if msg.direction=='trainer_to_user' %}msg-out{% else %}msg-in{% endif %}" style="margin-bottom:.5rem;max-width:100%">
+    <div class="msg-text">{{ msg.content }}</div>
+    <div class="msg-ts">{{ msg.created_at.strftime('%b %d, %H:%M') if msg.created_at else '' }}</div>
+  </div>
+  {% endfor %}
 </div>
 {% endif %}
 {% endblock %}

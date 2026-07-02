@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+{% block title %}Trainer Profile — AURON{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">My Profile</h1>
+</div>
+
+{# ── Avatar ── #}
+<div class="profile-hero">
+  <div class="avatar-upload-wrap">
+    <div class="avatar-ring" id="avatarRing">
+      {% if trainer.avatar_url %}
+        <img src="{{ trainer.avatar_url }}" class="avatar-img" id="avatarImg" />
+      {% else %}
+        <div class="avatar-initials" id="avatarInitials">{{ trainer.username[0]|upper }}</div>
+      {% endif %}
+      <label for="avatarInput" class="avatar-overlay" title="Change photo">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </label>
+    </div>
+    <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/webp" style="display:none" />
+    <form id="avatarForm" method="POST" action="/trainer/profile/avatar" enctype="multipart/form-data" style="display:none">
+      <input type="file" name="avatar" id="avatarFormFile" />
+    </form>
+    <div class="avatar-meta">
+      <h2 class="profile-name">{{ trainer.business_name or trainer.username }}</h2>
+      <span class="profile-email">{{ trainer.email }}</span>
+      <div style="margin-top:.4rem;font-size:.8rem;color:var(--muted)">{{ trainer.specialization|replace('_',' ')|title if trainer.specialization else '' }}</div>
+    </div>
+    {% if trainer.avatar_url %}
+    <form method="POST" action="/trainer/profile/avatar/remove" style="margin-top:.5rem">
+      <button type="submit" class="btn-text-danger" onclick="return confirm('Remove photo?')">Remove photo</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+{# ── Stats ── #}
+<div class="stats-row">
+  <div class="stat-box"><span class="stat-big">{{ client_count }}</span><span class="stat-small">Clients</span></div>
+  <div class="stat-box"><span class="stat-big">{{ trainer.years_experience or '—' }}</span><span class="stat-small">Years Exp.</span></div>
+  <div class="stat-box"><span class="stat-big">{{ trainer.specialization|replace('_',' ')|title if trainer.specialization else '—' }}</span><span class="stat-small">Specialty</span></div>
+</div>
+
+{# ── Edit Form ── #}
+<div class="card">
+  <h3 class="card-title">Profile Info</h3>
+  <form method="POST" action="/trainer/profile">
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label>Business Name</label>
+        <input type="text" name="business_name" value="{{ trainer.business_name or '' }}" placeholder="Elite Fitness Co." />
+      </div>
+      <div class="form-group">
+        <label>Instagram</label>
+        <input type="text" name="instagram" value="{{ trainer.instagram or '' }}" placeholder="@yourhandle" />
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="tel" name="phone" value="{{ trainer.phone or '' }}" placeholder="+91 98765 43210" />
+      </div>
+      <div class="form-group">
+        <label>Years Experience</label>
+        <input type="number" name="years_experience" value="{{ trainer.years_experience or '' }}" min="0" max="50" />
+      </div>
+      <div class="form-group">
+        <label>Specialization</label>
+        <select name="specialization">
+          {% for val, label in [('strength','Strength & Powerlifting'),('bodybuilding','Bodybuilding'),('crossfit','CrossFit'),('weight_loss','Weight Loss'),('sports','Sports Performance'),('general','General Fitness')] %}
+          <option value="{{ val }}" {% if trainer.specialization==val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Country</label>
+        <select id="selCountry" onchange="onLocCountryChange(this)">
+          <option value="">Select Country</option>
+        </select>
+        <input type="hidden" name="country" id="hidCountry" value="{{ trainer.country or '' }}" />
+      </div>
+      <div class="form-group">
+        <label>State</label>
+        <select id="selState" onchange="onLocStateChange(this)">
+          <option value="">Select State</option>
+        </select>
+        <input type="hidden" name="state" id="hidState" value="{{ trainer.state or '' }}" />
+      </div>
+      <div class="form-group">
+        <label>City</label>
+        <select id="selCity" onchange="onLocCityChange(this)">
+          <option value="">Select City</option>
+        </select>
+        <input type="hidden" name="city" id="hidCity" value="{{ trainer.city or '' }}" />
+      </div>
+      <div class="form-group form-full">
+        <label>Bio</label>
+        <textarea name="bio" rows="3" placeholder="Tell athletes about your coaching style…">{{ trainer.bio or '' }}</textarea>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-gold" style="margin-top:1rem">Save Profile</button>
+  </form>
+</div>
+
+{# ── Invite Link ── #}
+<div class="card">
+  <h3 class="card-title">🔗 Team Invite Link</h3>
+  <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem">Share this link. Anyone who signs up through it is automatically added to your team.</p>
+  <div class="invite-link-box">
+    <input type="text" id="inviteUrl" value="{{ invite_url }}" readonly class="invite-input" />
+    <button class="btn btn-gold btn-sm" onclick="copyInvite()">Copy</button>
+  </div>
+  <div style="margin-top:.75rem;display:flex;gap:.75rem;flex-wrap:wrap">
+    <a href="https://wa.me/?text={{ invite_url|urlencode }}" target="_blank" class="btn btn-ghost btn-sm">Share via WhatsApp</a>
+    <form method="POST" action="/trainer/profile/regenerate-link" style="display:inline">
+      <button type="submit" class="btn btn-ghost btn-sm" onclick="return confirm('Regenerate link? Old link will stop working.')">Regenerate Link</button>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+// Avatar upload
+const avatarInput    = document.getElementById('avatarInput');
+const avatarFormFile = document.getElementById('avatarFormFile');
+const avatarForm     = document.getElementById('avatarForm');
+
+avatarInput.addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  if (file.size > 5*1024*1024) { alert('Max 5 MB'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('avatarImg');
+    const ini = document.getElementById('avatarInitials');
+    if (img) { img.src = e.target.result; }
+    else if (ini) {
+      const newImg = document.createElement('img');
+      newImg.src = e.target.result; newImg.className = 'avatar-img'; newImg.id = 'avatarImg';
+      ini.replaceWith(newImg);
+    }
+    document.getElementById('avatarRing').classList.add('avatar-uploading');
+  };
+  reader.readAsDataURL(file);
+  const dt = new DataTransfer(); dt.items.add(file);
+  avatarFormFile.files = dt.files;
+  avatarForm.submit();
+});
+
+// Copy invite link
+function copyInvite() {
+  const input = document.getElementById('inviteUrl');
+  input.select();
+  navigator.clipboard.writeText(input.value).then(() => {
+    showToast('Link copied!', 'success');
+  });
+}
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`; t.textContent = msg;
+  let c = document.getElementById('toastContainer');
+  if (!c) { c = document.createElement('div'); c.id='toastContainer'; c.className='toast-container'; document.body.appendChild(c); }
+  c.appendChild(t); setTimeout(()=>t.remove(),3000);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Location select cascade (Country → State → City)
+   Selects use CODE as value (reliable for fetching next level).
+   Hidden inputs carry the human-readable NAME that actually gets
+   submitted to the backend (e.g. "India", "Maharashtra", "Mumbai").
+   ══════════════════════════════════════════════════════════════ */
+const _savedLoc = {
+  country: "{{ trainer.country or '' }}",
+  state:   "{{ trainer.state or '' }}",
+  city:    "{{ trainer.city or '' }}"
+};
+
+async function locLoadCountries() {
+  const sel = document.getElementById('selCountry');
+  if (!sel) return;
+  try {
+    const r = await fetch('/static/locations/countries.json');
+    const countries = await r.json();           // [{code, name, emoji}, …]
+    countries.forEach(c => {
+      sel.appendChild(new Option(c.name, c.code));
+    });
+    if (_savedLoc.country) {
+      const match = countries.find(c => c.name === _savedLoc.country);
+      if (match) {
+        sel.value = match.code;
+        document.getElementById('hidCountry').value = match.name;
+        await locLoadStates(match.code, true);
+      }
+    }
+  } catch(e) { console.warn('Could not load countries', e); }
+}
+
+async function locLoadStates(countryCode, restoring = false) {
+  const sel = document.getElementById('selState');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Select State</option>';
+  if (!countryCode) return;
+  try {
+    const r = await fetch(`/static/locations/${countryCode}/states.json`);
+    if (!r.ok) return;
+    const states = await r.json();               // [{code, name}, …]
+    states.forEach(s => sel.appendChild(new Option(s.name, s.code)));
+    if (restoring && _savedLoc.state) {
+      const match = states.find(s => s.name === _savedLoc.state);
+      if (match) {
+        sel.value = match.code;
+        document.getElementById('hidState').value = match.name;
+        await locLoadCities(countryCode, match.code, true);
+      }
+    }
+  } catch(e) { console.warn('No states for', countryCode, e); }
+}
+
+async function locLoadCities(countryCode, stateCode, restoring = false) {
+  const sel = document.getElementById('selCity');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Select City</option>';
+  if (!stateCode) return;
+  try {
+    const r = await fetch(`/static/locations/${countryCode}/${stateCode}.json`);
+    if (!r.ok) return;
+    const cities = await r.json();               // ["Toronto", "Vancouver", …] OR [{name}, …]
+    cities.forEach(c => {
+      const name = typeof c === 'string' ? c : c.name;
+      sel.appendChild(new Option(name, name));
+    });
+    if (restoring && _savedLoc.city) {
+      sel.value = _savedLoc.city;
+      document.getElementById('hidCity').value = _savedLoc.city;
+    }
+  } catch(e) { console.warn('No cities for', stateCode, e); }
+}
+
+function onLocCountryChange(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  document.getElementById('hidCountry').value = opt && opt.value ? opt.text : '';
+  document.getElementById('hidState').value = '';
+  document.getElementById('hidCity').value = '';
+  document.getElementById('selCity').innerHTML = '<option value="">Select City</option>';
+  locLoadStates(opt ? opt.value : '');
+}
+
+function onLocStateChange(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  document.getElementById('hidState').value = opt && opt.value ? opt.text : '';
+  document.getElementById('hidCity').value = '';
+  const countryCode = document.getElementById('selCountry').value;
+  locLoadCities(countryCode, opt ? opt.value : '');
+}
+
+function onLocCityChange(sel) {
+  document.getElementById('hidCity').value = sel.value;
+}
+
+locLoadCountries();
+</script>
+{% endblock %}

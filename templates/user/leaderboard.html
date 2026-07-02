@@ -5,43 +5,420 @@
   <h1 class="page-title">Leaderboard</h1>
 </div>
 
-<div class="filter-row">
-  <a href="?period=daily&tab={{ tab }}" class="filter-btn {% if period == 'daily' %}active{% endif %}">Today</a>
-  <a href="?period=weekly&tab={{ tab }}" class="filter-btn {% if period == 'weekly' %}active{% endif %}">This Week</a>
+{# ── Scope tabs ── #}
+<div class="lb-scope-row">
+  {% for s, label in [
+    
+    ('team',    '👥 My Team')
+  ] %}
+  <a href="?scope={{ s }}&period={{ period }}&tab={{ tab }}"
+     class="scope-btn {% if scope == s %}active{% endif %}">{{ label }}</a>
+  {% endfor %}
 </div>
+
+{# ── Period + Type filters ── #}
+<div class="lb-filter-row">
+  <div class="filter-group">
+    {% for p, lbl in [('daily','Today'),('weekly','Week'),('monthly','Month')] %}
+    <a href="?scope={{ scope }}&period={{ p }}&tab={{ tab }}"
+       class="filter-btn {% if period == p %}active{% endif %}">{{ lbl }}</a>
+    {% endfor %}
+  </div>
+  <div class="filter-group">
+    <a href="?scope={{ scope }}&period={{ period }}&tab=athletes"
+       class="filter-btn {% if tab == 'athletes' %}active{% endif %}">Athletes</a>
+    <a href="?scope={{ scope }}&period={{ period }}&tab=trainers"
+       class="filter-btn {% if tab == 'trainers' %}active{% endif %}">Trainers</a>
+  </div>
+</div>
+
+{# ── Location Filter Dropdowns (shown only on global/country/state/city scopes) ── #}
+{% if scope in ['global', 'country', 'state', 'city'] %}
+<div class="lb-location-filters" id="locationFilters">
+  
+  {# Country dropdown #}
+  <div class="loc-select-wrap">
+    <label class="loc-label">🌍 Country</label>
+    <select id="filterCountry" class="loc-select" onchange="onCountryChange(this.value)">
+      <option value="">All Countries</option>
+    </select>
+  </div>
+
+  {# State dropdown #}
+  <div class="loc-select-wrap" id="stateWrap" style="display:none">
+    <label class="loc-label">📍 State / Province</label>
+    <select id="filterState" class="loc-select" onchange="onStateChange(this.value)">
+      <option value="">All States</option>
+    </select>
+  </div>
+
+  {# City dropdown #}
+  <div class="loc-select-wrap" id="cityWrap" style="display:none">
+    <label class="loc-label">🏙️ City</label>
+    <select id="filterCity" class="loc-select" onchange="onCityChange(this.value)">
+      <option value="">All Cities</option>
+    </select>
+  </div>
+
+  {# Apply button #}
+  <div class="loc-select-wrap loc-apply-wrap">
+    <button class="btn btn-gold loc-apply-btn" onclick="applyLocationFilter()">Apply</button>
+    <button class="btn btn-ghost loc-apply-btn" onclick="clearLocationFilter()">Clear</button>
+  </div>
+
+</div>
+{% endif %}
 
 {% if entries %}
 <div class="leaderboard">
   {% for e in entries %}
-  <div class="lb-row {% if loop.index <= 3 %}lb-top{% endif %}">
+  {% set is_me    = e.get('is_me', False) %}
+  {% set not_ranked = e.get('not_ranked', False) %}
+
+  <div class="lb-row
+    {% if loop.index <= 3 and not not_ranked %}lb-top{% endif %}
+    {% if is_me %}lb-me{% endif %}
+    {% if not_ranked %}lb-not-ranked{% endif %}">
+
     <div class="lb-rank">
-      {% if loop.index == 1 %}🥇
+      {% if not_ranked %}
+        <span style="font-size:.75rem">You</span>
+      {% elif loop.index == 1 %}🥇
       {% elif loop.index == 2 %}🥈
       {% elif loop.index == 3 %}🥉
       {% else %}#{{ loop.index }}{% endif %}
     </div>
+
     <div class="lb-avatar">
-      {% if e.avatar_url %}
-      <img src="{{ e.avatar_url }}" alt="{{ e.username }}" />
+      {% set av = e.get('avatar_url','') %}
+      {% if av %}
+        <img src="{{ av }}" />
       {% else %}
-      <div class="avatar-placeholder">{{ e.username[0] | upper }}</div>
+        <div class="avatar-placeholder">
+          {{ (e.get('username') or e.get('business_name') or '?')[0]|upper }}
+        </div>
       {% endif %}
     </div>
+
     <div class="lb-info">
-      <span class="lb-name">{{ e.username }}</span>
+      <span class="lb-name">
+        {{ e.get('username') or e.get('business_name','') }}
+        {% if is_me %}<span style="font-size:.7rem;color:var(--gold);margin-left:.3rem">(you)</span>{% endif %}
+      </span>
+      {% if e.get('location') %}
+        <span class="lb-loc">📍 {{ e.location }}</span>
+      {% endif %}
+      {% if tab == 'trainers' %}
+        <span class="lb-sub">{{ e.get('client_count',0) }} clients</span>
+      {% endif %}
     </div>
+
+    <div class="lb-actions">
+      {% if tab == 'trainers' %}
+      <button class="btn btn-sm btn-ghost"
+              onclick="openTrainerDm('{{ e.get('trainer_id','') }}','{{ e.get('business_name') or e.get('username','') }}')">
+        💬
+      </button>
+      {% endif %}
+    </div>
+
     <div class="lb-score">
-      <span class="lb-score-num">{{ e.score }}</span>
+      <span class="lb-score-num">
+        {{ e.get('score', e.get('avg_score', 0)) }}
+      </span>
       <span class="lb-score-label">pts</span>
     </div>
+
   </div>
   {% endfor %}
 </div>
+
 {% else %}
 <div class="empty-state">
   <div class="empty-icon">🏆</div>
   <h3>No scores yet</h3>
-  <p>Be the first to log your activities today.</p>
+  {% if scope == 'team' %}
+    <p>Join a trainer's team to compete with teammates.</p>
+    <a href="/user/inbox" class="btn btn-gold" style="margin-top:1rem">Find a Trainer</a>
+  {% elif scope == 'city' %}
+    <p>No athletes from <strong>{{ user_doc.get('city','your city') }}</strong> yet.<br/>
+    Update your city in <a href="/user/profile">Profile</a> or switch to Global.</p>
+  {% elif scope == 'state' %}
+    <p>No athletes from <strong>{{ user_doc.get('state','your state') }}</strong> yet.</p>
+  {% elif scope == 'country' %}
+    <p>No athletes from <strong>{{ user_doc.get('country','your country') }}</strong> yet.</p>
+  {% else %}
+    <p>Be the first to log your activities today.</p>
+  {% endif %}
 </div>
 {% endif %}
+
+{# ── DM Modal (user → trainer) ── #}
+<div class="modal" id="dmModal">
+  <div class="modal-card">
+    <h3 id="dmTitle">Message Trainer</h3>
+    <input type="hidden" id="dmTrainerId" />
+    <div class="form-group">
+      <label>Message</label>
+      <textarea id="dmContent" rows="4" placeholder="Hey coach, I saw your ranking and…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('dmModal')">Cancel</button>
+      <button class="btn btn-gold" onclick="sendDm()">Send</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.lb-location-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  align-items: flex-end;
+  margin: 1rem 0 1.25rem;
+  padding: 1rem 1.1rem;
+  background: var(--card-bg, #1a1a1a);
+  border: 1px solid var(--border, #2a2a2a);
+  border-radius: 12px;
+}
+
+.loc-select-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  flex: 1;
+  min-width: 140px;
+  max-width: 220px;
+}
+
+.loc-label {
+  font-size: .7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-muted, #888);
+}
+
+.loc-select {
+  background: var(--input-bg, #111);
+  color: var(--text, #eee);
+  border: 1px solid var(--border, #333);
+  border-radius: 8px;
+  padding: .45rem .65rem;
+  font-size: .88rem;
+  cursor: pointer;
+  outline: none;
+  transition: border-color .2s;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right .6rem center;
+  padding-right: 1.8rem;
+}
+
+.loc-select:focus {
+  border-color: var(--gold, #f0c040);
+}
+
+.loc-select option {
+  background: #1a1a1a;
+  color: #eee;
+}
+
+.loc-apply-wrap {
+  flex-direction: row;
+  align-items: flex-end;
+  gap: .5rem;
+  max-width: none;
+  flex: 0 0 auto;
+}
+
+.loc-apply-btn {
+  padding: .45rem 1.1rem;
+  font-size: .85rem;
+  border-radius: 8px;
+}
+
+@media (max-width: 600px) {
+  .lb-location-filters {
+    flex-direction: column;
+  }
+  .loc-select-wrap {
+    max-width: 100%;
+  }
+  .loc-apply-wrap {
+    flex-direction: row;
+    width: 100%;
+  }
+  .loc-apply-btn {
+    flex: 1;
+  }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ── Current filter state ── */
+const _locFilter = {
+  country: "{{ request.args.get('filter_country', '') }}",
+  state:   "{{ request.args.get('filter_state', '') }}",
+  city:    "{{ request.args.get('filter_city', '') }}"
+};
+
+/* ── Load countries list on page load ── */
+async function loadCountries() {
+  try {
+    const r = await fetch('/static/locations/countries.json');
+    const countries = await r.json();           // [{code, name}, …]
+    const sel = document.getElementById('filterCountry');
+    if (!sel) return;
+    countries.forEach(c => {
+      const o = new Option(c.name, c.code);
+      sel.appendChild(o);
+    });
+    if (_locFilter.country) {
+      sel.value = _locFilter.country;
+      await loadStates(_locFilter.country, true);
+    }
+  } catch(e) { console.warn('Could not load countries', e); }
+}
+
+/* ── Load states for a country ── */
+async function loadStates(countryCode, restoring = false) {
+  const stateWrap = document.getElementById('stateWrap');
+  const sel       = document.getElementById('filterState');
+  if (!stateWrap || !sel) return;
+
+  if (!countryCode) {
+    stateWrap.style.display = 'none';
+    hideCityDropdown();
+    return;
+  }
+
+  try {
+    const r = await fetch(`/static/locations/${countryCode}/states.json`);
+    if (!r.ok) { stateWrap.style.display = 'none'; return; }
+    const states = await r.json();              // [{code, name}, …]
+
+    // reset
+    sel.innerHTML = '<option value="">All States</option>';
+    states.forEach(s => {
+      const o = new Option(s.name, s.code);
+      sel.appendChild(o);
+    });
+
+    stateWrap.style.display = 'flex';
+
+    if (restoring && _locFilter.state) {
+      sel.value = _locFilter.state;
+      await loadCities(countryCode, _locFilter.state, true);
+    }
+  } catch(e) {
+    stateWrap.style.display = 'none';
+    console.warn('No states for', countryCode, e);
+  }
+}
+
+/* ── Load cities for a state ── */
+async function loadCities(countryCode, stateCode, restoring = false) {
+  const cityWrap = document.getElementById('cityWrap');
+  const sel      = document.getElementById('filterCity');
+  if (!cityWrap || !sel) return;
+
+  if (!stateCode) { hideCityDropdown(); return; }
+
+  try {
+    const r = await fetch(`/static/locations/${countryCode}/${stateCode}.json`);
+    if (!r.ok) { hideCityDropdown(); return; }
+    const cities = await r.json();              // ["Toronto", "Vancouver", …]  OR [{name}, …]
+
+    sel.innerHTML = '<option value="">All Cities</option>';
+    cities.forEach(c => {
+      const name = typeof c === 'string' ? c : c.name;
+      sel.appendChild(new Option(name, name));
+    });
+
+    cityWrap.style.display = 'flex';
+
+    if (restoring && _locFilter.city) {
+      sel.value = _locFilter.city;
+    }
+  } catch(e) {
+    hideCityDropdown();
+    console.warn('No cities for', stateCode, e);
+  }
+}
+
+function hideCityDropdown() {
+  const w = document.getElementById('cityWrap');
+  if (w) w.style.display = 'none';
+}
+
+/* ── Event handlers ── */
+async function onCountryChange(val) {
+  hideCityDropdown();
+  document.getElementById('filterState').innerHTML = '<option value="">All States</option>';
+  await loadStates(val);
+}
+
+async function onStateChange(val) {
+  const country = document.getElementById('filterCountry').value;
+  await loadCities(country, val);
+}
+
+function onCityChange(val) { /* value captured on Apply */ }
+
+/* ── Apply / Clear ── */
+function applyLocationFilter() {
+  const country = document.getElementById('filterCountry')?.value || '';
+  const state   = document.getElementById('filterState')?.value   || '';
+  const city    = document.getElementById('filterCity')?.value    || '';
+
+  const params = new URLSearchParams(window.location.search);
+  params.set('filter_country', country);
+  params.set('filter_state',   state);
+  params.set('filter_city',    city);
+  window.location.search = params.toString();
+}
+
+function clearLocationFilter() {
+  const params = new URLSearchParams(window.location.search);
+  params.delete('filter_country');
+  params.delete('filter_state');
+  params.delete('filter_city');
+  window.location.search = params.toString();
+}
+
+/* ── DM helpers ── */
+function openTrainerDm(tid, name) {
+  if (!tid) return;
+  document.getElementById('dmTrainerId').value = tid;
+  document.getElementById('dmTitle').textContent = 'Message ' + name;
+  document.getElementById('dmContent').value = '';
+  openModal('dmModal');
+}
+
+async function sendDm() {
+  const tid     = document.getElementById('dmTrainerId').value;
+  const content = document.getElementById('dmContent').value.trim();
+  if (!content) return;
+  const r = await fetch('/api/messages/send', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({trainer_id: tid, content})
+  });
+  const d = await r.json();
+  if (d.ok) {
+    closeModal('dmModal');
+    showToast('Message sent!', 'success');
+  } else {
+    showToast('Could not send message.', 'error');
+  }
+}
+
+/* ── Init ── */
+loadCountries();
+</script>
 {% endblock %}

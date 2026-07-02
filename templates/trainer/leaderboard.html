@@ -1,38 +1,127 @@
 {% extends "base.html" %}
-{% block title %}Trainer Leaderboard — AURON{% endblock %}
+{% block title %}Leaderboard — AURON{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h1 class="page-title">Trainer Rankings</h1>
+  <h1 class="page-title">Leaderboard</h1>
 </div>
-<p class="page-sub" style="margin-bottom:1.5rem">Ranked by average client AURON score</p>
 
-<div class="leaderboard">
-  {% for t in board %}
-  <div class="lb-row {% if loop.index <= 3 %}lb-top{% endif %}">
-    <div class="lb-rank">
-      {% if loop.index == 1 %}🥇
-      {% elif loop.index == 2 %}🥈
-      {% elif loop.index == 3 %}🥉
-      {% else %}#{{ loop.index }}{% endif %}
+{# ── Tab toggle ── #}
+<div class="lb-filter-row" style="margin-bottom:1.25rem">
+  <div class="filter-group">
+    <button class="filter-btn {% if tab=='trainers' %}active{% endif %}"
+            onclick="switchTab('trainers',this)">🏋️ Trainers</button>
+    <button class="filter-btn {% if tab=='athletes' %}active{% endif %}"
+            onclick="switchTab('athletes',this)">⚡ Athletes</button>
+  </div>
+  <div class="filter-group" id="periodBtns">
+    {% for p, lbl in [('daily','Today'),('weekly','Week'),('monthly','Month')] %}
+    <button class="filter-btn {% if period==p %}active{% endif %}"
+            onclick="setPeriod('{{ p }}',this)">{{ lbl }}</button>
+    {% endfor %}
+  </div>
+</div>
+
+{# ── Trainer board ── #}
+<div id="trainerBoard" style="display:{% if tab=='trainers' %}block{% else %}none{% endif %}">
+  {% if board %}
+  <p class="page-sub" style="margin-bottom:1rem">Ranked by average client AURON score</p>
+  <div class="leaderboard">
+    {% for t in board %}
+    <div class="lb-row {% if loop.index<=3 %}lb-top{% endif %}">
+      <div class="lb-rank">
+        {% if loop.index==1 %}🥇{% elif loop.index==2 %}🥈{% elif loop.index==3 %}🥉{% else %}#{{ loop.index }}{% endif %}
+      </div>
+      <div class="lb-avatar">
+        {% if t.avatar_url %}<img src="{{ t.avatar_url }}" />
+        {% else %}<div class="avatar-placeholder">{{ t.username[0]|upper }}</div>{% endif %}
+      </div>
+      <div class="lb-info">
+        <a href="/profile/trainer/{{ t.id }}" class="lb-name lb-name-link">{{ t.business_name or t.username }}</a>
+        <span class="lb-sub">{{ t.client_count }} client{{ 's' if t.client_count != 1 else '' }}</span>
+      </div>
+      <div class="lb-score">
+        <span class="lb-score-num">{{ t.avg_score }}</span>
+        <span class="lb-score-label">avg</span>
+      </div>
     </div>
-    <div class="lb-avatar">
-      <div class="avatar-placeholder">{{ t.username[0] | upper }}</div>
-    </div>
-    <div class="lb-info">
-      <span class="lb-name">{{ t.business_name or t.username }}</span>
-      <span class="lb-sub">{{ t.client_count }} clients</span>
-    </div>
-    <div class="lb-score">
-      <span class="lb-score-num">{{ t.avg_score }}</span>
-      <span class="lb-score-label">avg</span>
-    </div>
+    {% endfor %}
   </div>
   {% else %}
   <div class="empty-state">
     <div class="empty-icon">🏆</div>
-    <h3>No rankings yet</h3>
-    <p>Trainers appear here once they have active clients with scores.</p>
+    <h3>No trainer rankings yet</h3>
+    <p>Trainers appear once they have clients with logged scores.</p>
   </div>
-  {% endfor %}
+  {% endif %}
 </div>
+
+{# ── Athlete board (loaded via API) ── #}
+<div id="athleteBoard" style="display:{% if tab=='athletes' %}block{% else %}none{% endif %}">
+  <p class="page-sub" style="margin-bottom:1rem">Top athletes by AURON Score</p>
+  <div id="athleteList">
+    <div class="landing-lb-loading">Loading athletes…</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let curTab    = '{{ tab }}';
+let curPeriod = '{{ period }}';
+
+function switchTab(tab, btn) {
+  curTab = tab;
+  document.querySelectorAll('.lb-filter-row .filter-group:first-child .filter-btn')
+    .forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('trainerBoard').style.display = tab === 'trainers' ? 'block' : 'none';
+  document.getElementById('athleteBoard').style.display = tab === 'athletes' ? 'block' : 'none';
+  if (tab === 'athletes') loadAthletes();
+}
+
+function setPeriod(p, btn) {
+  curPeriod = p;
+  document.querySelectorAll('#periodBtns .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (curTab === 'athletes') loadAthletes();
+}
+
+async function loadAthletes() {
+  const box = document.getElementById('athleteList');
+  box.innerHTML = '<div class="landing-lb-loading">Loading…</div>';
+  try {
+    const r    = await fetch(`/api/public/leaderboard?tab=athletes&period=${curPeriod}`);
+    const data = await r.json();
+    if (!data.length) {
+      box.innerHTML = '<div class="empty-state"><div class="empty-icon">⚡</div><h3>No scores today</h3><p>Athletes appear once they log activities.</p></div>';
+      return;
+    }
+    const medals = ['🥇','🥈','🥉'];
+    box.innerHTML = `<div class="leaderboard">${data.map((e,i) => `
+      <div class="lb-row ${i<3?'lb-top':''}">
+        <div class="lb-rank">${i<3?medals[i]:'#'+(i+1)}</div>
+        <div class="lb-avatar">
+          ${e.avatar_url
+            ? `<img src="${e.avatar_url}" />`
+            : `<div class="avatar-placeholder">${(e.name||'?')[0].toUpperCase()}</div>`}
+        </div>
+        <div class="lb-info">
+          <a href="/profile/user/${e.user_id||''}" class="lb-name lb-name-link">${e.name}</a>
+          ${e.location?`<span class="lb-loc">📍 ${e.location}</span>`:''}
+        </div>
+        <div class="lb-score">
+          <span class="lb-score-num">${e.score}</span>
+          <span class="lb-score-label">pts</span>
+        </div>
+      </div>`).join('')}</div>`;
+  } catch {
+    box.innerHTML = '<p class="text-muted" style="padding:1rem">Could not load athletes.</p>';
+  }
+}
+
+// On load, if athletes tab is active, fetch them
+document.addEventListener('DOMContentLoaded', () => {
+  if (curTab === 'athletes') loadAthletes();
+});
+</script>
 {% endblock %}
