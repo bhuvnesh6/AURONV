@@ -1800,3 +1800,15 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
   .landing-footer-links { grid-template-columns: 1fr 1fr; }
   .lfl-bottom { flex-direction: column; text-align: center; }
 }
+
+/* pricing teaser discount note */
+.lpt-discount-note {
+  margin-top: 1.1rem;
+  font-size: .85rem;
+  color: var(--muted);
+  background: rgba(34,197,94,.07);
+  border: 1px solid rgba(34,197,94,.2);
+  border-radius: var(--radius-sm);
+  padding: .65rem 1rem;
+  display: inline-block;
+}
