@@ -34,16 +34,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5051/')" || exit 1
 
 # ── Start with Gunicorn ───────────────────────────────────────────────────────
-# 4 workers × 2 threads = handles ~8 concurrent requests
-# Adjust --workers based on your VPS CPU count: (2 × CPU cores) + 1
-CMD ["gunicorn", \
-     "--bind", "0.0.0.0:5051", \
-     "--workers", "4", \
-     "--threads", "2", \
-     "--worker-class", "gthread", \
-     "--timeout", "120", \
-     "--keepalive", "5", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-", \
-     "--log-level", "info", \
-     "app:create_app()"]
+# 4 workers x 2 threads = handles ~8 concurrent requests
+CMD ["gunicorn", "--bind", "0.0.0.0:5051", "--workers", "4", "--threads", "2", "--worker-class", "gthread", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "--log-level", "info", "app:create_app()"]
