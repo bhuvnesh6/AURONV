@@ -16,86 +16,113 @@
     <p class="pricing-sub">One plan. Full access. No hidden fees.</p>
 
     <div class="billing-toggle">
-      <button class="btog-btn active" id="btnMonthly" onclick="showPlans('monthly')">Monthly</button>
-      <button class="btog-btn" id="btnQuarterly" onclick="showPlans('quarterly')">3 Months <span class="discount-chip">20% off</span></button>
-      <button class="btog-btn" id="btnAnnual" onclick="showPlans('annual')">Annual <span class="discount-chip">20% off</span></button>
+      <button class="btog-btn active" id="btnMonthly"    onclick="showPlans('monthly')">Monthly</button>
+      <button class="btog-btn"        id="btnQuarterly"  onclick="showPlans('quarterly')">3 Months <span class="discount-chip">20% off</span></button>
+      <button class="btog-btn"        id="btnAnnual"     onclick="showPlans('annual')">Annual <span class="discount-chip">20% off</span></button>
     </div>
   </div>
 
   <div class="pricing-cards">
 
-    {# Free #}
-
-    {# Pro #}
+    {# Athlete Pro #}
     <div class="pricing-card pricing-card-featured">
-      <div class="pc-popular">Most Popular</div>
+      <div class="pc-popular">Athlete</div>
       <div class="pc-header">
         <div class="pc-name">Pro</div>
         <div class="pc-price">
-          <span class="pc-amount" id="proPrice">$9.99</span>
-          <span class="pc-period" id="proPeriod">/mo</span>
+          <span class="pc-amount" id="athPrice">$9.99</span>
+          <span class="pc-period" id="athPeriod">/mo</span>
         </div>
-        <div class="pc-desc" id="proDesc">Billed monthly</div>
-        <div class="pc-savings" id="proSavings" style="display:none"></div>
+        <div class="pc-desc" id="athDesc">Billed monthly</div>
+        <div class="pc-savings" id="athSavings" style="display:none"></div>
       </div>
       <ul class="pc-features">
-        <li>✓ Everything in Free</li>
-        <li>✓ Full history (unlimited)</li>
-        <li>✓ Progress timeline & photos</li>
+        <li>✓ AURON Score tracking</li>
+        <li>✓ Unlimited workout history</li>
+        <li>✓ Progress timeline &amp; photos</li>
         <li>✓ Inbox — message trainers</li>
-        <li>✓ City, state & country leaderboards</li>
+        <li>✓ City, state &amp; country leaderboards</li>
         <li>✓ Team leaderboard</li>
         <li>✓ Assigned training programs</li>
         <li>✓ Trainer connection</li>
         <li>✓ Priority support</li>
       </ul>
-      <a href="/signup/user" class="btn btn-gold btn-block" id="proCtaBtn">Get Started</a>
+      {% if current_user.is_authenticated %}
+        {% set sub = current_user.doc.get('subscription', {}) %}
+        {% if sub.get('status') == 'active' %}
+          <div class="btn btn-ghost btn-block" style="text-align:center;cursor:default">✓ Already subscribed</div>
+          <a href="/billing/portal" class="btn btn-ghost btn-block" style="margin-top:.5rem;font-size:.8rem">Manage billing →</a>
+        {% else %}
+          <a href="/subscribe?cycle=monthly" class="btn btn-gold btn-block" id="athCta">Get Started</a>
+        {% endif %}
+      {% else %}
+        <a href="/signup/user" class="btn btn-gold btn-block">Create Account →</a>
+      {% endif %}
     </div>
 
-    {# Trainer #}
-    <div class="pricing-card">
+    {# Trainer Pro #}
+    <div class="pricing-card pricing-card-featured">
+      <div class="pc-popular">Trainer</div>
       <div class="pc-header">
-        <div class="pc-name">Trainer</div>
+        <div class="pc-name">Pro</div>
         <div class="pc-price">
-          <span class="pc-amount" id="trainerPrice">$9.99</span>
-          <span class="pc-period" id="trainerPeriod">/mo</span>
+          <span class="pc-amount" id="trPrice">$9.99</span>
+          <span class="pc-period" id="trPeriod">/mo</span>
         </div>
-        <div class="pc-desc" id="trainerDesc">Billed monthly</div>
-        <div class="pc-savings" id="trainerSavings" style="display:none"></div>
+        <div class="pc-desc" id="trDesc">Billed monthly</div>
+        <div class="pc-savings" id="trSavings" style="display:none"></div>
       </div>
       <ul class="pc-features">
         <li>✓ Full trainer dashboard</li>
         <li>✓ Unlimited clients</li>
         <li>✓ Compliance tracking</li>
         <li>✓ Broadcast messaging</li>
-        <li>✓ Program builder & assignment</li>
-        <li>✓ Trainer invite link</li>
+        <li>✓ Program builder &amp; assignment</li>
+        <li>✓ Team invite link</li>
         <li>✓ Team leaderboard</li>
         <li>✓ At-risk client alerts</li>
         <li>✓ Priority support</li>
       </ul>
-      <a href="/signup/trainer" class="btn btn-outline btn-block" id="trainerCtaBtn">Start as Trainer</a>
+      {% if current_user.is_authenticated %}
+        {% set sub = current_user.doc.get('subscription', {}) %}
+        {% if sub.get('status') == 'active' %}
+          <div class="btn btn-ghost btn-block" style="text-align:center;cursor:default">✓ Already subscribed</div>
+          <a href="/billing/portal" class="btn btn-ghost btn-block" style="margin-top:.5rem;font-size:.8rem">Manage billing →</a>
+        {% else %}
+          <a href="/subscribe?cycle=monthly" class="btn btn-outline btn-block" id="trCta">Get Started</a>
+        {% endif %}
+      {% else %}
+        <a href="/signup/trainer" class="btn btn-outline btn-block">Create Trainer Account →</a>
+      {% endif %}
     </div>
 
   </div>
 
   <div class="pricing-trust">
-    <div class="trust-item">🔒 Secure payments</div>
+    <div class="trust-item">🔒 Secure payments via Paddle</div>
     <div class="trust-item">💳 Cancel anytime</div>
-    <div class="trust-item">🇺🇸 US & Canada</div>
-    <div class="trust-item">📧 support@auron.app</div>
+    <div class="trust-item">🇺🇸 US &amp; Canada</div>
+    <div class="trust-item">📧 auron@phishnix.site</div>
   </div>
 
   <div class="pricing-faq">
     <h2 style="text-align:center;margin-bottom:1.5rem;font-size:1.3rem">FAQ</h2>
-    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Can I cancel anytime? <span>+</span></div>
-      <div class="faq-a">Yes. Cancel from your account settings at any time. No questions asked.</div></div>
-    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Is there a free trial? <span>+</span></div>
-      <div class="faq-a">The Free plan is free forever. Upgrade to Pro when you're ready for more.</div></div>
-    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">What payment methods do you accept? <span>+</span></div>
-      <div class="faq-a">We accept all major credit and debit cards (Visa, Mastercard, Amex) and PayPal.</div></div>
-    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Do discounts apply to both Pro and Trainer plans? <span>+</span></div>
-      <div class="faq-a">Yes. The 20% discount applies to both plans on the 3-month and annual billing cycles.</div></div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">Can I cancel anytime? <span>+</span></div>
+      <div class="faq-a">Yes. Cancel from your billing portal at any time. You keep access until the end of your billing period.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">What payment methods are accepted? <span>+</span></div>
+      <div class="faq-a">All major credit and debit cards (Visa, Mastercard, Amex) via Paddle's secure checkout.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">Does the 20% discount apply to both plans? <span>+</span></div>
+      <div class="faq-a">Yes. The 20% discount applies to both Athlete and Trainer plans on 3-month and annual billing.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">What happens to my data if I cancel? <span>+</span></div>
+      <div class="faq-a">Your account and data are preserved. You lose access to Pro features but your history stays intact if you resubscribe.</div>
+    </div>
   </div>
 
   <footer class="landing-footer">
@@ -109,27 +136,38 @@
 </div>
 
 <script>
-const MONTHLY    = { price: 9.99,  period: '/mo',  desc: 'Billed monthly',                savings: '' };
-const QUARTERLY  = { price: 7.99,  period: '/mo',  desc: 'Billed $23.97 every 3 months', savings: 'Save $11.97/year (20% off)' };
-const ANNUAL     = { price: 7.99,  period: '/mo',  desc: 'Billed $95.88/year',            savings: 'Save $23.88/year (20% off)' };
+const PLANS = {
+  monthly:   { price:'$9.99',  period:'/mo',  desc:'Billed monthly',                 savings:'' },
+  quarterly: { price:'$7.99',  period:'/mo',  desc:'Billed $23.97 every 3 months',   savings:'Save $5.97 vs monthly (20% off)' },
+  annual:    { price:'$7.99',  period:'/mo',  desc:'Billed $95.88/year',             savings:'Save $23.88/year (20% off)' },
+};
 
-function showPlans(type) {
-  const plan = type === 'quarterly' ? QUARTERLY : type === 'annual' ? ANNUAL : MONTHLY;
+let currentCycle = 'monthly';
+
+function showPlans(cycle) {
+  currentCycle = cycle;
+  const p = PLANS[cycle];
   document.querySelectorAll('.btog-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('btn' + type.charAt(0).toUpperCase() + type.slice(1)).classList.add('active');
+  document.getElementById('btn' + cycle.charAt(0).toUpperCase() + cycle.slice(1)).classList.add('active');
 
-  ['pro','trainer'].forEach(prefix => {
-    document.getElementById(prefix + 'Price').textContent  = '$' + plan.price;
-    document.getElementById(prefix + 'Period').textContent = plan.period;
-    document.getElementById(prefix + 'Desc').textContent   = plan.desc;
-    const savEl = document.getElementById(prefix + 'Savings');
-    if (plan.savings) { savEl.textContent = plan.savings; savEl.style.display = ''; }
-    else              { savEl.style.display = 'none'; }
+  ['ath','tr'].forEach(pfx => {
+    document.getElementById(pfx+'Price').textContent  = p.price;
+    document.getElementById(pfx+'Period').textContent = p.period;
+    document.getElementById(pfx+'Desc').textContent   = p.desc;
+    const sav = document.getElementById(pfx+'Savings');
+    if (p.savings) { sav.textContent = p.savings; sav.style.display = ''; }
+    else           { sav.style.display = 'none'; }
+  });
+
+  // Update CTA links to pass cycle
+  ['athCta','trCta'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.href = `/subscribe?cycle=${cycle}`;
   });
 }
 
 function toggleFaq(el) {
-  const a = el.nextElementSibling;
+  const a    = el.nextElementSibling;
   const open = a.style.display === 'block';
   document.querySelectorAll('.faq-a').forEach(x => x.style.display = 'none');
   document.querySelectorAll('.faq-q span').forEach(x => x.textContent = '+');

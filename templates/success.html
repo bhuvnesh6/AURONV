@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Payment Successful — AURON{% endblock %}
+{% block content %}
+<div style="max-width:480px;margin:4rem auto;text-align:center;padding:2rem">
+  <div style="font-size:4rem;margin-bottom:1.5rem">🎉</div>
+  <h1 style="font-size:1.75rem;font-weight:800;margin-bottom:.75rem">You're now Pro!</h1>
+  <p style="color:var(--muted);margin-bottom:.5rem">Payment received. Your subscription is being activated.</p>
+  <p style="color:var(--muted);font-size:.85rem;margin-bottom:2rem">This usually takes less than a minute. Refresh your dashboard if features don't appear immediately.</p>
+  <a href="{% if current_user.role == 'trainer' %}/trainer/dashboard{% else %}/user/dashboard{% endif %}"
+     class="btn btn-gold btn-lg">Go to Dashboard →</a>
+  <p style="margin-top:1.5rem;font-size:.78rem;color:var(--muted)">
+    Questions? <a href="mailto:auron@phishnix.site">auron@phishnix.site</a>
+  </p>
+</div>
+{% endblock %}

@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from app import db, bcrypt
+from flask import current_app
+from app import bcrypt
 from routes.helpers import calculate_auron_score, get_streak, get_compliance_for_client, get_rank_label
 from bson import ObjectId
 from datetime import datetime, date, timedelta
@@ -26,7 +27,7 @@ def trainer_required(f):
 
 
 def get_trainer_doc():
-    return db.trainers.find_one({"_id": ObjectId(current_user.id)}) or {}
+    return current_app.config["DB"].trainers.find_one({"_id": ObjectId(current_user.id)}) or {}
 
 
 def _gen_code():
@@ -41,7 +42,7 @@ def _gen_code():
 def dashboard():
     trainer    = get_trainer_doc()
     client_ids = [ObjectId(c) for c in trainer.get("clients", [])]
-    clients    = list(db.users.find({"_id": {"$in": client_ids}}))
+    clients    = list(current_app.config["DB"].users.find({"_id": {"$in": client_ids}}))
     stats      = {"active_clients": len(clients), "avg_score": 0, "at_risk": [], "top_performers": []}
     scores     = []
 
@@ -57,7 +58,7 @@ def dashboard():
         stats["avg_score"] = round(sum(scores) / len(scores))
     stats["top_performers"] = sorted(clients, key=lambda x: x.get("today_score", 0), reverse=True)[:3]
 
-    unread = db.messages.count_documents({
+    unread = current_app.config["DB"].messages.count_documents({
         "trainer_id": ObjectId(current_user.id),
         "direction":  "user_to_trainer",
         "read_by_trainer": False,
@@ -74,7 +75,7 @@ def dashboard():
 def profile():
     tid = ObjectId(current_user.id)
     if request.method == "POST":
-        db.trainers.update_one({"_id": tid}, {"$set": {
+        current_app.config["DB"].trainers.update_one({"_id": tid}, {"$set": {
             "business_name":    request.form.get("business_name",   "").strip(),
             "instagram":        request.form.get("instagram",       "").strip(),
             "specialization":   request.form.get("specialization",  ""),
@@ -88,10 +89,10 @@ def profile():
         flash("Profile updated!", "success")
         return redirect(url_for("trainer.profile"))
 
-    trainer = db.trainers.find_one({"_id": tid}) or {}
+    trainer = current_app.config["DB"].trainers.find_one({"_id": tid}) or {}
     if not trainer.get("invite_code"):
         code = _gen_code()
-        db.trainers.update_one({"_id": tid}, {"$set": {"invite_code": code}})
+        current_app.config["DB"].trainers.update_one({"_id": tid}, {"$set": {"invite_code": code}})
         trainer["invite_code"] = code
 
     invite_url   = request.host_url.rstrip("/") + f"/trainer/invite/{trainer['invite_code']}"
@@ -117,7 +118,7 @@ def upload_avatar():
             public_id=f"trainer_{current_user.id}", overwrite=True,
             transformation=[{"width": 400, "height": 400, "crop": "fill",
                              "gravity": "face", "quality": "auto"}])
-        db.trainers.update_one({"_id": tid}, {"$set": {"avatar_url": r.get("secure_url", "")}})
+        current_app.config["DB"].trainers.update_one({"_id": tid}, {"$set": {"avatar_url": r.get("secure_url", "")}})
         flash("Photo updated!", "success")
     except Exception as e:
         flash(f"Upload failed: {e}", "error")
@@ -132,7 +133,7 @@ def remove_avatar():
         cloudinary.uploader.destroy(f"auron/trainer_avatars/trainer_{current_user.id}")
     except Exception:
         pass
-    db.trainers.update_one({"_id": ObjectId(current_user.id)}, {"$set": {"avatar_url": ""}})
+    current_app.config["DB"].trainers.update_one({"_id": ObjectId(current_user.id)}, {"$set": {"avatar_url": ""}})
     flash("Photo removed.", "info")
     return redirect(url_for("trainer.profile"))
 
@@ -142,7 +143,7 @@ def remove_avatar():
 @trainer_required
 def regenerate_invite():
     code = _gen_code()
-    db.trainers.update_one({"_id": ObjectId(current_user.id)}, {"$set": {"invite_code": code}})
+    current_app.config["DB"].trainers.update_one({"_id": ObjectId(current_user.id)}, {"$set": {"invite_code": code}})
     flash("New invite link generated!", "success")
     return redirect(url_for("trainer.profile"))
 
@@ -155,7 +156,7 @@ def regenerate_invite():
 def clients():
     trainer    = get_trainer_doc()
     client_ids = [ObjectId(c) for c in trainer.get("clients", [])]
-    clients    = list(db.users.find({"_id": {"$in": client_ids}}))
+    clients    = list(current_app.config["DB"].users.find({"_id": {"$in": client_ids}}))
     for c in clients:
         c["today_score"] = calculate_auron_score(str(c["_id"]))
         c["streak"]      = get_streak(str(c["_id"]))["current"]
@@ -173,7 +174,7 @@ def search_clients():
         return jsonify([])
     trainer  = get_trainer_doc()
     existing = [ObjectId(c) for c in trainer.get("clients", [])]
-    results  = list(db.users.find(
+    results  = list(current_app.config["DB"].users.find(
         {"username": {"$regex": q, "$options": "i"}, "_id": {"$nin": existing}},
         {"username": 1, "avatar_url": 1, "goal": 1, "city": 1, "country": 1}
     ).limit(8))
@@ -192,14 +193,14 @@ def search_clients():
 def add_client():
     user_id  = request.form.get("user_id",  "").strip()
     username = request.form.get("username", "").strip()
-    user     = (db.users.find_one({"_id": ObjectId(user_id)}) if user_id
-                else db.users.find_one({"username": username}))
+    user     = (current_app.config["DB"].users.find_one({"_id": ObjectId(user_id)}) if user_id
+                else current_app.config["DB"].users.find_one({"username": username}))
     if not user:
         flash("User not found.", "error")
     else:
-        db.trainers.update_one({"_id": ObjectId(current_user.id)},
+        current_app.config["DB"].trainers.update_one({"_id": ObjectId(current_user.id)},
                                {"$addToSet": {"clients": str(user["_id"])}})
-        db.users.update_one({"_id": user["_id"]},
+        current_app.config["DB"].users.update_one({"_id": user["_id"]},
                             {"$set": {"trainer_id": current_user.id}})
         flash(f"{user['username']} added to your team!", "success")
     return redirect(url_for("trainer.clients"))
@@ -209,9 +210,9 @@ def add_client():
 @login_required
 @trainer_required
 def remove_client(client_id):
-    db.trainers.update_one({"_id": ObjectId(current_user.id)},
+    current_app.config["DB"].trainers.update_one({"_id": ObjectId(current_user.id)},
                            {"$pull": {"clients": client_id}})
-    db.users.update_one({"_id": ObjectId(client_id)},
+    current_app.config["DB"].users.update_one({"_id": ObjectId(client_id)},
                         {"$set": {"trainer_id": ""}})
     flash("Client removed.", "info")
     return redirect(url_for("trainer.clients"))
@@ -221,7 +222,7 @@ def remove_client(client_id):
 @login_required
 @trainer_required
 def client_detail(client_id):
-    client = db.users.find_one({"_id": ObjectId(client_id)})
+    client = current_app.config["DB"].users.find_one({"_id": ObjectId(client_id)})
     if not client:
         flash("Client not found.", "error")
         return redirect(url_for("trainer.clients"))
@@ -229,16 +230,16 @@ def client_detail(client_id):
     streak     = get_streak(client_id)
     compliance = get_compliance_for_client(client_id)
     rank       = get_rank_label(score)
-    workouts   = list(db.workouts.find({"user_id": ObjectId(client_id)}).sort("date", -1).limit(10))
-    progress   = list(db.progress_entries.find({"user_id": ObjectId(client_id)}).sort("date", -1).limit(6))
-    thread     = list(db.messages.find({
+    workouts   = list(current_app.config["DB"].workouts.find({"user_id": ObjectId(client_id)}).sort("date", -1).limit(10))
+    progress   = list(current_app.config["DB"].progress_entries.find({"user_id": ObjectId(client_id)}).sort("date", -1).limit(6))
+    thread     = list(current_app.config["DB"].messages.find({
         "trainer_id": ObjectId(current_user.id), "client_id": ObjectId(client_id)
     }).sort("created_at", 1).limit(50))
     # Assigned programs for this client
-    assigned = list(db.assigned_programs.find({"user_id": ObjectId(client_id),
+    assigned = list(current_app.config["DB"].assigned_programs.find({"user_id": ObjectId(client_id),
                                                "trainer_id": ObjectId(current_user.id)}))
     prog_ids  = [a["program_id"] for a in assigned]
-    programs  = list(db.programs.find({"_id": {"$in": prog_ids}}))
+    programs  = list(current_app.config["DB"].programs.find({"_id": {"$in": prog_ids}}))
     return render_template("trainer/client_detail.html",
                            client=client, score=score, streak=streak,
                            compliance=compliance, rank=rank,
@@ -250,7 +251,7 @@ def client_detail(client_id):
 
 @trainer_bp.route("/invite/<code>")
 def invite_landing(code):
-    trainer = db.trainers.find_one({"invite_code": code})
+    trainer = current_app.config["DB"].trainers.find_one({"invite_code": code})
     if not trainer:
         flash("Invalid invite link.", "error")
         return redirect(url_for("auth.index"))
@@ -265,10 +266,10 @@ def invite_landing(code):
 def programs():
     trainer      = get_trainer_doc()
     client_ids   = [ObjectId(c) for c in trainer.get("clients", [])]
-    clients_list = list(db.users.find({"_id": {"$in": client_ids}}, {"username": 1, "avatar_url": 1}))
+    clients_list = list(current_app.config["DB"].users.find({"_id": {"$in": client_ids}}, {"username": 1, "avatar_url": 1}))
 
     if request.method == "POST":
-        db.programs.insert_one({
+        current_app.config["DB"].programs.insert_one({
             "trainer_id":  ObjectId(current_user.id),
             "name":        request.form.get("name", "New Program"),
             "description": request.form.get("description", ""),
@@ -278,15 +279,15 @@ def programs():
         flash("Program created!", "success")
         return redirect(url_for("trainer.programs"))
 
-    progs        = list(db.programs.find({"trainer_id": ObjectId(current_user.id)}).sort("created_at", -1))
+    progs        = list(current_app.config["DB"].programs.find({"trainer_id": ObjectId(current_user.id)}).sort("created_at", -1))
     clients_json = json.dumps([{"id": str(c["_id"]), "username": c["username"],
                                 "avatar_url": c.get("avatar_url", "")} for c in clients_list])
 
     # Enrich programs with assigned-client info
     for p in progs:
-        assigned = db.assigned_programs.find({"program_id": p["_id"],
+        assigned = current_app.config["DB"].assigned_programs.find({"program_id": p["_id"],
                                               "trainer_id": ObjectId(current_user.id)})
-        p["assigned_count"] = db.assigned_programs.count_documents(
+        p["assigned_count"] = current_app.config["DB"].assigned_programs.count_documents(
             {"program_id": p["_id"], "trainer_id": ObjectId(current_user.id)})
 
     return render_template("trainer/programs.html",
@@ -307,7 +308,7 @@ def assign_program(program_id):
         client_ids = request.form.getlist("client_ids")
 
     for cid in client_ids:
-        db.assigned_programs.update_one(
+        current_app.config["DB"].assigned_programs.update_one(
             {"user_id": ObjectId(cid), "program_id": ObjectId(program_id)},
             {"$set": {"trainer_id": ObjectId(current_user.id),
                       "assigned_at": datetime.utcnow()}},
@@ -321,7 +322,7 @@ def assign_program(program_id):
 @login_required
 @trainer_required
 def unassign_program(program_id, client_id):
-    db.assigned_programs.delete_one({
+    current_app.config["DB"].assigned_programs.delete_one({
         "user_id":    ObjectId(client_id),
         "program_id": ObjectId(program_id),
         "trainer_id": ObjectId(current_user.id),
@@ -338,7 +339,7 @@ def unassign_program(program_id, client_id):
 def messages():
     trainer    = get_trainer_doc()
     client_ids = [ObjectId(c) for c in trainer.get("clients", [])]
-    clients    = list(db.users.find({"_id": {"$in": client_ids}}, {"username": 1, "avatar_url": 1}))
+    clients    = list(current_app.config["DB"].users.find({"_id": {"$in": client_ids}}, {"username": 1, "avatar_url": 1}))
 
     if request.method == "POST":
         msg_type     = request.form.get("msg_type", "individual")
@@ -357,7 +358,7 @@ def messages():
             recipients = request.form.getlist("recipients")
 
         for rid in recipients:
-            db.messages.insert_one({
+            current_app.config["DB"].messages.insert_one({
                 "trainer_id":   ObjectId(current_user.id),
                 "client_id":    ObjectId(rid),
                 "direction":    "trainer_to_user",
@@ -371,10 +372,10 @@ def messages():
     active_client_id = request.args.get("client", "")
     conversations    = []
     for c in clients:
-        latest = db.messages.find_one(
+        latest = current_app.config["DB"].messages.find_one(
             {"trainer_id": ObjectId(current_user.id), "client_id": c["_id"]},
             sort=[("created_at", -1)])
-        unread = db.messages.count_documents({
+        unread = current_app.config["DB"].messages.count_documents({
             "trainer_id": ObjectId(current_user.id), "client_id": c["_id"],
             "direction": "user_to_trainer", "read_by_trainer": False,
         })
@@ -387,13 +388,13 @@ def messages():
     thread        = []
     active_client = None
     if active_client_id:
-        active_client = db.users.find_one({"_id": ObjectId(active_client_id)},
+        active_client = current_app.config["DB"].users.find_one({"_id": ObjectId(active_client_id)},
                                           {"username": 1, "avatar_url": 1})
-        thread = list(db.messages.find({
+        thread = list(current_app.config["DB"].messages.find({
             "trainer_id": ObjectId(current_user.id),
             "client_id":  ObjectId(active_client_id),
         }).sort("created_at", 1).limit(100))
-        db.messages.update_many(
+        current_app.config["DB"].messages.update_many(
             {"trainer_id": ObjectId(current_user.id), "client_id": ObjectId(active_client_id),
              "direction": "user_to_trainer", "read_by_trainer": False},
             {"$set": {"read_by_trainer": True}},
@@ -414,7 +415,7 @@ def leaderboard():
     tab    = request.args.get("tab",    "trainers")
     period = request.args.get("period", "daily")
 
-    trainers = list(db.trainers.find({},
+    trainers = list(current_app.config["DB"].trainers.find({},
                     {"username": 1, "business_name": 1, "clients": 1, "avatar_url": 1}))
     board = []
     today    = date.today()
@@ -433,10 +434,10 @@ def leaderboard():
         scores = []
         for cid in cids:
             if period == "daily":
-                rec = db.scores.find_one({"user_id": cid, "date": date_str})
+                rec = current_app.config["DB"].scores.find_one({"user_id": cid, "date": date_str})
                 scores.append(rec["score"] if rec else 0)
             else:
-                recs = list(db.scores.find({"user_id": cid, "date": {"$gte": from_date}}))
+                recs = list(current_app.config["DB"].scores.find({"user_id": cid, "date": {"$gte": from_date}}))
                 scores.append(round(sum(r["score"] for r in recs) / len(recs)) if recs else 0)
         avg = round(sum(scores) / len(scores)) if scores else 0
         board.append({

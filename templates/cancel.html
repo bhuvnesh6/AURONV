@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Payment Cancelled — AURON{% endblock %}
+{% block public_content %}
+<div style="max-width:480px;margin:4rem auto;text-align:center;padding:2rem">
+  <div style="font-size:4rem;margin-bottom:1.5rem">💭</div>
+  <h1 style="font-size:1.75rem;font-weight:800;margin-bottom:.75rem">No worries</h1>
+  <p style="color:var(--muted);margin-bottom:2rem">You cancelled the checkout. Come back anytime — your account is still here.</p>
+  <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+    <a href="/pricing" class="btn btn-gold">View Pricing</a>
+    <a href="/" class="btn btn-ghost">Back to Home</a>
+  </div>
+</div>
+{% endblock %}

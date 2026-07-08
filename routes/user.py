@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from app import db
+from flask import current_app
 from routes.helpers import (
     calculate_auron_score, save_daily_score, get_streak,
     get_today_logs, get_rank_label, get_geo_from_ip, get_client_ip
@@ -8,7 +8,6 @@ from routes.helpers import (
 from bson import ObjectId
 from datetime import datetime, date, timedelta
 import cloudinary, cloudinary.uploader, os
-from bson.errors import InvalidId
 
 user_bp = Blueprint("user", __name__)
 
@@ -41,15 +40,15 @@ def dashboard():
     streak = get_streak(uid)
     logs   = get_today_logs(uid)
     rank   = get_rank_label(score)
-    unread = db.messages.count_documents({
+    unread = current_app.config["DB"].messages.count_documents({
         "client_id":    ObjectId(uid),
         "direction":    "trainer_to_user",
         "read_by_user": False,
     })
     # Assigned programs
-    assigned_programs = list(db.assigned_programs.find({"user_id": ObjectId(uid)}))
+    assigned_programs = list(current_app.config["DB"].assigned_programs.find({"user_id": ObjectId(uid)}))
     prog_ids  = [a["program_id"] for a in assigned_programs]
-    programs  = list(db.programs.find({"_id": {"$in": prog_ids}})) if prog_ids else []
+    programs  = list(current_app.config["DB"].programs.find({"_id": {"$in": prog_ids}})) if prog_ids else []
     return render_template("user/dashboard.html",
                            score=score, streak=streak, logs=logs,
                            rank=rank, unread=unread, programs=programs)
@@ -65,7 +64,7 @@ def workouts():
     if request.method == "POST":
         action = request.form.get("action")
         if action == "create_workout":
-            db.workouts.insert_one({
+            current_app.config["DB"].workouts.insert_one({
                 "user_id":      uid,
                 "date":         date.today().strftime("%Y-%m-%d"),
                 "name":         request.form.get("workout_name", "Workout"),
@@ -82,7 +81,7 @@ def workouts():
             sets = int(request.form.get("sets",   0) or 0)
             reps = int(request.form.get("reps",   0) or 0)
             wt   = float(request.form.get("weight", 0) or 0)
-            db.workouts.update_one(
+            current_app.config["DB"].workouts.update_one(
                 {"_id": ObjectId(wid)},
                 {"$push": {"exercises": {"name": request.form.get("ex_name", ""),
                     "sets": sets, "reps": reps, "weight_kg": wt,
@@ -92,7 +91,7 @@ def workouts():
             flash("Exercise added!", "success")
         return redirect(url_for("user.workouts"))
 
-    workouts_list = list(db.workouts.find({"user_id": uid}).sort("date", -1).limit(30))
+    workouts_list = list(current_app.config["DB"].workouts.find({"user_id": uid}).sort("date", -1).limit(30))
     return render_template("user/workouts.html", workouts=workouts_list)
 
 
@@ -109,22 +108,22 @@ def nutrition():
         calories = float(request.form.get("calories",      0) or 0)
         entry    = {"notes": request.form.get("meal_notes", ""), "protein": protein,
                     "calories": calories, "time": datetime.utcnow().strftime("%H:%M")}
-        existing = db.nutrition_logs.find_one({"user_id": uid, "date": date_str})
+        existing = current_app.config["DB"].nutrition_logs.find_one({"user_id": uid, "date": date_str})
         if existing:
-            db.nutrition_logs.update_one({"_id": existing["_id"]},
+            current_app.config["DB"].nutrition_logs.update_one({"_id": existing["_id"]},
                 {"$inc": {"protein_grams": protein, "calories": calories},
                  "$push": {"meals": entry}})
         else:
-            db.nutrition_logs.insert_one({"user_id": uid, "date": date_str,
+            current_app.config["DB"].nutrition_logs.insert_one({"user_id": uid, "date": date_str,
                 "protein_grams": protein, "calories": calories,
                 "meals": [entry], "created_at": datetime.utcnow()})
         save_daily_score(current_user.id)
         flash("Nutrition logged!", "success")
         return redirect(url_for("user.nutrition"))
 
-    today_log = db.nutrition_logs.find_one({"user_id": uid, "date": date_str}) or {}
-    history   = list(db.nutrition_logs.find({"user_id": uid}).sort("date", -1).limit(7))
-    user_doc  = db.users.find_one({"_id": uid}) or {}
+    today_log = current_app.config["DB"].nutrition_logs.find_one({"user_id": uid, "date": date_str}) or {}
+    history   = list(current_app.config["DB"].nutrition_logs.find({"user_id": uid}).sort("date", -1).limit(7))
+    user_doc  = current_app.config["DB"].users.find_one({"_id": uid}) or {}
     return render_template("user/nutrition.html", today=today_log, history=history,
                            protein_goal=user_doc.get("protein_goal", 150))
 
@@ -138,11 +137,11 @@ def log_water():
     uid = ObjectId(current_user.id)
     date_str = date.today().strftime("%Y-%m-%d")
     amount = int(request.form.get("amount_ml", 0) or 0)
-    ex = db.water_logs.find_one({"user_id": uid, "date": date_str})
+    ex = current_app.config["DB"].water_logs.find_one({"user_id": uid, "date": date_str})
     if ex:
-        db.water_logs.update_one({"_id": ex["_id"]}, {"$inc": {"amount_ml": amount}})
+        current_app.config["DB"].water_logs.update_one({"_id": ex["_id"]}, {"$inc": {"amount_ml": amount}})
     else:
-        db.water_logs.insert_one({"user_id": uid, "date": date_str,
+        current_app.config["DB"].water_logs.insert_one({"user_id": uid, "date": date_str,
                                    "amount_ml": amount, "created_at": datetime.utcnow()})
     save_daily_score(current_user.id)
     return redirect(url_for("user.dashboard"))
@@ -154,7 +153,7 @@ def log_water():
 def log_steps():
     uid = ObjectId(current_user.id)
     date_str = date.today().strftime("%Y-%m-%d")
-    db.step_logs.update_one({"user_id": uid, "date": date_str},
+    current_app.config["DB"].step_logs.update_one({"user_id": uid, "date": date_str},
         {"$set": {"steps": int(request.form.get("steps", 0) or 0),
                   "updated_at": datetime.utcnow()},
          "$setOnInsert": {"created_at": datetime.utcnow()}}, upsert=True)
@@ -168,7 +167,7 @@ def log_steps():
 def log_sleep():
     uid = ObjectId(current_user.id)
     date_str = date.today().strftime("%Y-%m-%d")
-    db.sleep_logs.update_one({"user_id": uid, "date": date_str},
+    current_app.config["DB"].sleep_logs.update_one({"user_id": uid, "date": date_str},
         {"$set": {"hours": float(request.form.get("hours", 0) or 0),
                   "quality": request.form.get("quality", "good"),
                   "updated_at": datetime.utcnow()},
@@ -184,14 +183,14 @@ def log_sleep():
 @user_required
 def inbox():
     uid         = ObjectId(current_user.id)
-    trainer_ids = db.messages.distinct("trainer_id", {"client_id": uid})
+    trainer_ids = current_app.config["DB"].messages.distinct("trainer_id", {"client_id": uid})
     threads     = []
     for tid in trainer_ids:
-        trainer = db.trainers.find_one({"_id": tid},
+        trainer = current_app.config["DB"].trainers.find_one({"_id": tid},
                     {"username": 1, "avatar_url": 1, "business_name": 1}) or {}
-        latest  = db.messages.find_one({"client_id": uid, "trainer_id": tid},
+        latest  = current_app.config["DB"].messages.find_one({"client_id": uid, "trainer_id": tid},
                     sort=[("created_at", -1)])
-        unread  = db.messages.count_documents({
+        unread  = current_app.config["DB"].messages.count_documents({
             "client_id": uid, "trainer_id": tid,
             "direction": "trainer_to_user", "read_by_user": False,
         })
@@ -204,12 +203,12 @@ def inbox():
     thread_msgs    = []
     active_trainer = None
     if active_tid:
-        active_trainer = db.trainers.find_one({"_id": ObjectId(active_tid)},
+        active_trainer = current_app.config["DB"].trainers.find_one({"_id": ObjectId(active_tid)},
                            {"username": 1, "avatar_url": 1, "business_name": 1})
-        thread_msgs = list(db.messages.find(
+        thread_msgs = list(current_app.config["DB"].messages.find(
             {"client_id": uid, "trainer_id": ObjectId(active_tid)},
         ).sort("created_at", 1).limit(100))
-        db.messages.update_many(
+        current_app.config["DB"].messages.update_many(
             {"client_id": uid, "trainer_id": ObjectId(active_tid),
              "direction": "trainer_to_user", "read_by_user": False},
             {"$set": {"read_by_user": True}},
@@ -242,11 +241,11 @@ def timeline():
                 entry["photo_url"] = r.get("secure_url", "")
             except Exception:
                 pass
-        db.progress_entries.insert_one(entry)
+        current_app.config["DB"].progress_entries.insert_one(entry)
         flash("Progress entry saved!", "success")
         return redirect(url_for("user.timeline"))
 
-    entries = list(db.progress_entries.find({"user_id": uid}).sort("date", -1).limit(24))
+    entries = list(current_app.config["DB"].progress_entries.find({"user_id": uid}).sort("date", -1).limit(24))
     return render_template("user/timeline.html", entries=entries)
 
 
@@ -260,16 +259,15 @@ def leaderboard():
     period = request.args.get("period", "daily")
     tab    = request.args.get("tab",    "athletes")
 
-    # ── Location filter params from dropdowns ──
-    filter_country = request.args.get("filter_country", "").strip()
-    filter_state   = request.args.get("filter_state",   "").strip()
-    filter_city    = request.args.get("filter_city",    "").strip()
+    # Location filter params from cascading selects
+    filter_country = request.args.get("floc_country", "").strip()
+    filter_state   = request.args.get("floc_state",   "").strip()
+    filter_city    = request.args.get("floc_city",    "").strip()
 
     today    = date.today()
     date_str = today.strftime("%Y-%m-%d")
-
     uid      = ObjectId(current_user.id)
-    user_doc = db.users.find_one({"_id": uid}) or {}
+    user_doc = current_app.config["DB"].users.find_one({"_id": uid}) or {}
 
     if period == "weekly":
         from_date = (today - timedelta(days=7)).strftime("%Y-%m-%d")
@@ -278,199 +276,124 @@ def leaderboard():
     else:
         from_date = date_str
 
-    # ── Build geo_filter ──
-    # Dropdown filters take priority over scope-based filters
+    # Build geo filter from explicit dropdown values (not user's own profile)
     geo_filter = {}
+    if scope == "country" and filter_country:
+        geo_filter = {"country": filter_country}
+    elif scope == "state" and filter_country:
+        gf = {"country": filter_country}
+        if filter_state: gf["state"] = filter_state
+        geo_filter = gf
+    elif scope == "city" and filter_country:
+        gf = {"country": filter_country}
+        if filter_state: gf["state"] = filter_state
+        if filter_city:  gf["city"]  = filter_city
+        geo_filter = gf
 
-    if filter_country or filter_state or filter_city:
-        # User applied explicit dropdown filters
-        if filter_country:
-            geo_filter["country"] = filter_country
-        if filter_state:
-            geo_filter["state"] = filter_state
-        if filter_city:
-            geo_filter["city"] = filter_city
-    else:
-        # Fall back to scope-based geo filter
-        if scope == "country":
-            geo_filter = {"country": user_doc.get("country", "")}
-        elif scope == "state":
-            geo_filter = {
-                "country": user_doc.get("country", ""),
-                "state":   user_doc.get("state",   "")
-            }
-        elif scope == "city":
-            geo_filter = {
-                "country": user_doc.get("country", ""),
-                "city":    user_doc.get("city",    "")
-            }
+    entries = []
 
-    entries      = []
-    filter_empty = False   # flag → show "uncharted territory" empty state
-
-    # ==========================================================
-    # ATHLETES
-    # ==========================================================
     if tab == "athletes":
-
         if period == "daily":
-            pipeline = [
-                {"$match": {"date": date_str, **geo_filter}},
-                {"$group": {"_id": "$user_id", "score": {"$max": "$score"}}},
-                {"$sort":  {"score": -1}},
-                {"$limit": 50}
-            ]
+            pipeline = [{"$match": {"date": date_str, **geo_filter}},
+                        {"$sort": {"score": -1}}, {"$limit": 50}]
         else:
-            pipeline = [
-                {"$match": {"date": {"$gte": from_date}, **geo_filter}},
-                {"$group": {"_id": "$user_id", "avg_score": {"$avg": "$score"}}},
-                {"$sort":  {"avg_score": -1}},
-                {"$limit": 50}
-            ]
+            pipeline = [{"$match": {"date": {"$gte": from_date}, **geo_filter}},
+                        {"$group": {"_id": "$user_id", "avg_score": {"$avg": "$score"}}},
+                        {"$sort": {"avg_score": -1}}, {"$limit": 50}]
 
-        # Team filter
         if scope == "team":
-            team_ids = []
-            if user_doc.get("trainer_id"):
-                trainer = db.trainers.find_one({"_id": ObjectId(user_doc["trainer_id"])})
-                if trainer:
-                    for cid in trainer.get("clients", []):
-                        try:
-                            team_ids.append(ObjectId(cid))
-                        except Exception:
-                            pass
+            trainer_doc = (current_app.config["DB"].trainers.find_one({"_id": ObjectId(user_doc["trainer_id"])})
+                          if user_doc.get("trainer_id") else None)
+            team_ids    = [ObjectId(c) for c in (trainer_doc or {}).get("clients", [])]
+            if not team_ids:
+                # No team — return empty immediately
+                return render_template("user/leaderboard.html",
+                                       entries=[], scope=scope, period=period,
+                                       tab=tab, user_doc=user_doc,
+                                       filter_country=filter_country,
+                                       filter_state=filter_state,
+                                       filter_city=filter_city)
             pipeline[0]["$match"]["user_id"] = {"$in": team_ids}
 
-        raw = list(db.scores.aggregate(pipeline))
-
-        rank = 1
+        raw = list(current_app.config["DB"].scores.aggregate(pipeline))
+        rank = 0
         for r in raw:
-            u_id = r.get("_id")
+            u_id = r.get("_id") or r.get("user_id")
             if not u_id:
                 continue
-            if isinstance(u_id, str):
-                try:
-                    u_id = ObjectId(u_id)
-                except InvalidId:
-                    continue
-
-            user = db.users.find_one(
-                {"_id": u_id},
-                {"username": 1, "avatar_url": 1, "city": 1, "country": 1}
-            )
-            if not user:
-                continue
-
+            u = current_app.config["DB"].users.find_one({"_id": u_id},
+                    {"username": 1, "avatar_url": 1, "city": 1, "country": 1}) or {}
+            if not u.get("username"):
+                continue  # skip orphaned score records
+            rank += 1
+            is_me = str(u_id) == str(uid)
             entries.append({
                 "rank":       rank,
                 "user_id":    str(u_id),
-                "username":   user.get("username", "Unknown"),
-                "avatar_url": user.get("avatar_url", ""),
-                "location":   user.get("city") or user.get("country", ""),
+                "username":   u["username"],
+                "avatar_url": u.get("avatar_url", ""),
+                "location":   u.get("city", "") or u.get("country", ""),
                 "score":      round(r.get("avg_score", r.get("score", 0))),
-                "is_me":      str(u_id) == str(uid)
+                "is_me":      is_me,
             })
-            rank += 1
 
-        # Detect filter-driven empty (dropdown filters applied but no results)
-        if not entries and (filter_country or filter_state or filter_city):
-            filter_empty = True
-
-        # Always show current user at bottom if not already ranked
-        if not filter_empty and not any(e["is_me"] for e in entries):
+        # Ensure current user appears even if not in top 50
+        me_in_list = any(e["is_me"] for e in entries)
+        if not me_in_list:
             my_score = calculate_auron_score(str(uid))
             entries.append({
                 "rank":       "—",
                 "user_id":    str(uid),
                 "username":   user_doc.get("username", "You"),
                 "avatar_url": user_doc.get("avatar_url", ""),
-                "location":   user_doc.get("city") or user_doc.get("country", ""),
+                "location":   user_doc.get("city", "") or user_doc.get("country", ""),
                 "score":      my_score,
                 "is_me":      True,
-                "not_ranked": True
+                "not_ranked": True,
             })
 
-    # ==========================================================
-    # TRAINERS
-    # ==========================================================
-    else:
-        trainers = list(db.trainers.find(
-            {},
-            {
-                "username": 1, "business_name": 1, "avatar_url": 1,
-                "clients": 1, "country": 1, "state": 1, "city": 1
-            }
-        ))
-
+    else:  # trainers tab
+        trainers = list(current_app.config["DB"].trainers.find({},
+            {"username": 1, "business_name": 1, "avatar_url": 1,
+             "clients": 1, "city": 1, "country": 1, "state": 1}))
         board = []
-        for trainer in trainers:
-
-            # Dropdown filters take priority
-            if filter_country and trainer.get("country") != filter_country:
+        for t in trainers:
+            if scope == "country" and t.get("country") != user_doc.get("country"): continue
+            if scope == "state"   and t.get("state")   != user_doc.get("state"):   continue
+            if scope == "city"    and t.get("city")     != user_doc.get("city"):    continue
+            cids   = [ObjectId(c) for c in t.get("clients", [])]
+            if not cids:
                 continue
-            if filter_state and trainer.get("state") != filter_state:
-                continue
-            if filter_city and trainer.get("city") != filter_city:
-                continue
-
-            # Scope-based filters (only when no dropdown filter active)
-            if not (filter_country or filter_state or filter_city):
-                if scope == "country" and trainer.get("country") != user_doc.get("country"):
-                    continue
-                if scope == "state" and trainer.get("state") != user_doc.get("state"):
-                    continue
-                if scope == "city" and trainer.get("city") != user_doc.get("city"):
-                    continue
-
-            client_scores = []
-            for cid in trainer.get("clients", []):
-                try:
-                    cid = ObjectId(cid)
-                except Exception:
-                    continue
-
+            scores = []
+            for cid in cids:
                 if period == "daily":
-                    score_doc = db.scores.find_one({"user_id": cid, "date": date_str})
-                    client_scores.append(score_doc["score"] if score_doc else 0)
+                    rec = current_app.config["DB"].scores.find_one({"user_id": cid, "date": date_str})
+                    scores.append(rec["score"] if rec else 0)
                 else:
-                    docs = list(db.scores.find({"user_id": cid, "date": {"$gte": from_date}}))
-                    avg  = sum(d["score"] for d in docs) / len(docs) if docs else 0
-                    client_scores.append(avg)
-
-            if not client_scores:
-                continue
-
+                    recs = list(current_app.config["DB"].scores.find({"user_id": cid, "date": {"$gte": from_date}}))
+                    scores.append(sum(r["score"] for r in recs) / len(recs) if recs else 0)
+            avg = round(sum(scores) / len(scores)) if scores else 0
             board.append({
-                "trainer_id":   str(trainer["_id"]),
-                "username":     trainer.get("username", ""),
-                "business_name": trainer.get("business_name", ""),
-                "avatar_url":   trainer.get("avatar_url", ""),
-                "avg_score":    round(sum(client_scores) / len(client_scores)),
-                "client_count": len(client_scores),
-                "location":     trainer.get("city") or trainer.get("country", "")
+                "trainer_id":    str(t["_id"]),
+                "username":      t.get("username", ""),
+                "business_name": t.get("business_name", ""),
+                "avatar_url":    t.get("avatar_url", ""),
+                "avg_score":     avg,
+                "client_count":  len(cids),
+                "location":      t.get("city", "") or t.get("country", ""),
             })
-
         board.sort(key=lambda x: x["avg_score"], reverse=True)
-        for i, item in enumerate(board):
-            item["rank"] = i + 1
-
+        for i, b in enumerate(board):
+            b["rank"] = i + 1
         entries = board
 
-        if not entries and (filter_country or filter_state or filter_city):
-            filter_empty = True
+    return render_template("user/leaderboard.html",
+                           entries=entries, scope=scope, period=period,
+                           tab=tab, user_doc=user_doc,
+                           filter_country=filter_country,
+                           filter_state=filter_state,
+                           filter_city=filter_city)
 
-    return render_template(
-        "user/leaderboard.html",
-        entries=entries,
-        scope=scope,
-        period=period,
-        tab=tab,
-        user_doc=user_doc,
-        filter_empty=filter_empty,
-        filter_country=filter_country,
-        filter_state=filter_state,
-        filter_city=filter_city,
-    )
 
 # ── Profile ───────────────────────────────────────────────────────────────────
 
@@ -480,7 +403,7 @@ def leaderboard():
 def profile():
     uid = ObjectId(current_user.id)
     if request.method == "POST":
-        db.users.update_one({"_id": uid}, {"$set": {
+        current_app.config["DB"].users.update_one({"_id": uid}, {"$set": {
             "protein_goal": int(request.form.get("protein_goal", 150) or 150),
             "water_goal":   int(request.form.get("water_goal",   2500) or 2500),
             "sleep_goal":   float(request.form.get("sleep_goal", 7)   or 7),
@@ -497,7 +420,7 @@ def profile():
         flash("Profile updated!", "success")
         return redirect(url_for("user.profile"))
 
-    user_doc = db.users.find_one({"_id": uid}) or {}
+    user_doc = current_app.config["DB"].users.find_one({"_id": uid}) or {}
     score    = calculate_auron_score(current_user.id)
     streak   = get_streak(current_user.id)
     rank     = get_rank_label(score)
@@ -522,7 +445,7 @@ def upload_avatar():
             public_id=f"user_{current_user.id}", overwrite=True,
             transformation=[{"width": 400, "height": 400, "crop": "fill",
                              "gravity": "face", "quality": "auto"}])
-        db.users.update_one({"_id": uid}, {"$set": {"avatar_url": r.get("secure_url", "")}})
+        current_app.config["DB"].users.update_one({"_id": uid}, {"$set": {"avatar_url": r.get("secure_url", "")}})
         flash("Photo updated!", "success")
     except Exception as e:
         flash(f"Upload failed: {e}", "error")
@@ -537,6 +460,6 @@ def remove_avatar():
         cloudinary.uploader.destroy(f"auron/avatars/user_{current_user.id}")
     except Exception:
         pass
-    db.users.update_one({"_id": ObjectId(current_user.id)}, {"$set": {"avatar_url": ""}})
+    current_app.config["DB"].users.update_one({"_id": ObjectId(current_user.id)}, {"$set": {"avatar_url": ""}})
     flash("Photo removed.", "info")
     return redirect(url_for("user.profile"))

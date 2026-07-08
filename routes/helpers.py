@@ -1,6 +1,6 @@
 from datetime import datetime, date, timedelta
 from bson import ObjectId
-from app import db
+from flask import current_app
 import requests as http_requests
 
 
@@ -16,31 +16,31 @@ def calculate_auron_score(user_id, target_date=None):
     date_str = target_date.strftime("%Y-%m-%d")
     score    = 0
 
-    workout = db.workouts.find_one({"user_id": uid, "date": date_str})
+    workout = current_app.config["DB"].workouts.find_one({"user_id": uid, "date": date_str})
     if workout:
         score += 30
 
-    user         = db.users.find_one({"_id": uid}) or {}
+    user         = current_app.config["DB"].users.find_one({"_id": uid}) or {}
     protein_goal = user.get("protein_goal", 150)
-    nutrition    = db.nutrition_logs.find_one({"user_id": uid, "date": date_str})
+    nutrition    = current_app.config["DB"].nutrition_logs.find_one({"user_id": uid, "date": date_str})
     if nutrition:
         ratio  = min(nutrition.get("protein_grams", 0) / max(protein_goal, 1), 1.0)
         score += round(ratio * 20)
 
     sleep_goal = user.get("sleep_goal", 7)
-    sleep      = db.sleep_logs.find_one({"user_id": uid, "date": date_str})
+    sleep      = current_app.config["DB"].sleep_logs.find_one({"user_id": uid, "date": date_str})
     if sleep:
         ratio  = min(sleep.get("hours", 0) / max(sleep_goal, 1), 1.0)
         score += round(ratio * 20)
 
     steps_goal = user.get("steps_goal", 8000)
-    steps      = db.step_logs.find_one({"user_id": uid, "date": date_str})
+    steps      = current_app.config["DB"].step_logs.find_one({"user_id": uid, "date": date_str})
     if steps:
         ratio  = min(steps.get("steps", 0) / max(steps_goal, 1), 1.0)
         score += round(ratio * 15)
 
     water_goal = user.get("water_goal", 2500)
-    water      = db.water_logs.find_one({"user_id": uid, "date": date_str})
+    water      = current_app.config["DB"].water_logs.find_one({"user_id": uid, "date": date_str})
     if water:
         ratio  = min(water.get("amount_ml", 0) / max(water_goal, 1), 1.0)
         score += round(ratio * 15)
@@ -55,8 +55,8 @@ def save_daily_score(user_id, target_date=None):
     uid      = ObjectId(user_id)
     date_str = target_date.strftime("%Y-%m-%d")
 
-    user = db.users.find_one({"_id": uid}) or {}
-    db.scores.update_one(
+    user = current_app.config["DB"].users.find_one({"_id": uid}) or {}
+    current_app.config["DB"].scores.update_one(
         {"user_id": uid, "date": date_str},
         {"$set": {
             "score":      score,
@@ -84,7 +84,7 @@ def get_streak(user_id, threshold=80):
 
     for _ in range(365):
         date_str = check_date.strftime("%Y-%m-%d")
-        record   = db.scores.find_one({"user_id": uid, "date": date_str})
+        record   = current_app.config["DB"].scores.find_one({"user_id": uid, "date": date_str})
         if record and record.get("score", 0) >= threshold:
             temp_streak   += 1
             longest_streak = max(longest_streak, temp_streak)
@@ -107,13 +107,13 @@ def get_streak(user_id, threshold=80):
 def get_today_logs(user_id):
     uid      = ObjectId(user_id)
     date_str = date.today().strftime("%Y-%m-%d")
-    user     = db.users.find_one({"_id": uid}) or {}
+    user     = current_app.config["DB"].users.find_one({"_id": uid}) or {}
 
-    workout   = db.workouts.find_one({"user_id": uid, "date": date_str})
-    nutrition = db.nutrition_logs.find_one({"user_id": uid, "date": date_str}) or {}
-    water     = db.water_logs.find_one({"user_id": uid, "date": date_str})     or {}
-    sleep     = db.sleep_logs.find_one({"user_id": uid, "date": date_str})     or {}
-    steps     = db.step_logs.find_one({"user_id": uid, "date": date_str})      or {}
+    workout   = current_app.config["DB"].workouts.find_one({"user_id": uid, "date": date_str})
+    nutrition = current_app.config["DB"].nutrition_logs.find_one({"user_id": uid, "date": date_str}) or {}
+    water     = current_app.config["DB"].water_logs.find_one({"user_id": uid, "date": date_str})     or {}
+    sleep     = current_app.config["DB"].sleep_logs.find_one({"user_id": uid, "date": date_str})     or {}
+    steps     = current_app.config["DB"].step_logs.find_one({"user_id": uid, "date": date_str})      or {}
 
     return {
         "workout":      workout,
@@ -147,11 +147,11 @@ def get_compliance_for_client(user_id, days=7):
 
     for i in range(days):
         d = (today - timedelta(days=i)).strftime("%Y-%m-%d")
-        if db.workouts.find_one({"user_id": uid, "date": d}):       results["workout"] += 1
-        if db.nutrition_logs.find_one({"user_id": uid, "date": d}): results["protein"] += 1
-        if db.water_logs.find_one({"user_id": uid, "date": d}):     results["water"]   += 1
-        if db.sleep_logs.find_one({"user_id": uid, "date": d}):     results["sleep"]   += 1
-        if db.step_logs.find_one({"user_id": uid, "date": d}):      results["steps"]   += 1
+        if current_app.config["DB"].workouts.find_one({"user_id": uid, "date": d}):       results["workout"] += 1
+        if current_app.config["DB"].nutrition_logs.find_one({"user_id": uid, "date": d}): results["protein"] += 1
+        if current_app.config["DB"].water_logs.find_one({"user_id": uid, "date": d}):     results["water"]   += 1
+        if current_app.config["DB"].sleep_logs.find_one({"user_id": uid, "date": d}):     results["sleep"]   += 1
+        if current_app.config["DB"].step_logs.find_one({"user_id": uid, "date": d}):      results["steps"]   += 1
 
     return {k: round((v / days) * 100) for k, v in results.items()}
 

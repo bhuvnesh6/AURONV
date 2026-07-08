@@ -1,5 +1,5 @@
 from flask_login import UserMixin
-from app import db
+from flask import current_app
 from bson import ObjectId
 from datetime import datetime
 
@@ -33,17 +33,17 @@ class User(UserMixin):
 
     @staticmethod
     def get_by_id(user_id):
-        doc = db.users.find_one({"_id": ObjectId(user_id)})
+        doc = current_app.config["DB"].users.find_one({"_id": ObjectId(user_id)})
         return User(doc) if doc else None
 
     @staticmethod
     def get_by_email(email):
-        doc = db.users.find_one({"email": email})
+        doc = current_app.config["DB"].users.find_one({"email": email})
         return User(doc) if doc else None
 
     @staticmethod
     def get_by_username(username):
-        doc = db.users.find_one({"username": username})
+        doc = current_app.config["DB"].users.find_one({"username": username})
         return User(doc) if doc else None
 
 
@@ -76,15 +76,15 @@ class Trainer(UserMixin):
 
     @staticmethod
     def get_by_id(trainer_id):
-        doc = db.trainers.find_one({"_id": ObjectId(trainer_id)})
+        doc = current_app.config["DB"].trainers.find_one({"_id": ObjectId(trainer_id)})
         return Trainer(doc) if doc else None
 
     @staticmethod
     def get_by_email(email):
-        doc = db.trainers.find_one({"email": email})
+        doc = current_app.config["DB"].trainers.find_one({"email": email})
         return Trainer(doc) if doc else None
 
     @staticmethod
     def get_by_username(username):
-        doc = db.trainers.find_one({"username": username})
+        doc = current_app.config["DB"].trainers.find_one({"username": username})
         return Trainer(doc) if doc else None

@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
-from app import db
+from flask import current_app
 from routes.helpers import calculate_auron_score, save_daily_score, get_streak
 from bson import ObjectId
 from datetime import date, timedelta, datetime
@@ -28,7 +28,7 @@ def weekly_scores():
     result = []
     for i in range(6, -1, -1):
         d   = (today - timedelta(days=i)).strftime("%Y-%m-%d")
-        rec = db.scores.find_one({"user_id": uid, "date": d})
+        rec = current_app.config["DB"].scores.find_one({"user_id": uid, "date": d})
         result.append({"date": d, "score": rec["score"] if rec else 0})
     return jsonify(result)
 
@@ -40,7 +40,7 @@ def weekly_scores():
 def unread_messages():
     if current_user.role != "user":
         return jsonify({"count": 0})
-    count = db.messages.count_documents({
+    count = current_app.config["DB"].messages.count_documents({
         "client_id":    ObjectId(current_user.id),
         "direction":    "trainer_to_user",
         "read_by_user": False,
@@ -57,17 +57,17 @@ def inbox():
 
     uid    = ObjectId(current_user.id)
     # Find all trainers who have messaged this user
-    thread_keys = db.messages.distinct("trainer_id", {"client_id": uid})
+    thread_keys = current_app.config["DB"].messages.distinct("trainer_id", {"client_id": uid})
     threads = []
     for tid in thread_keys:
-        trainer = db.trainers.find_one({"_id": tid}, {"username": 1, "avatar_url": 1, "business_name": 1})
+        trainer = current_app.config["DB"].trainers.find_one({"_id": tid}, {"username": 1, "avatar_url": 1, "business_name": 1})
         if not trainer:
             continue
-        latest = db.messages.find_one(
+        latest = current_app.config["DB"].messages.find_one(
             {"client_id": uid, "trainer_id": tid},
             sort=[("created_at", -1)]
         )
-        unread = db.messages.count_documents({
+        unread = current_app.config["DB"].messages.count_documents({
             "client_id": uid, "trainer_id": tid,
             "direction": "trainer_to_user", "read_by_user": False,
         })
@@ -91,12 +91,12 @@ def get_thread(trainer_id):
         return jsonify([])
     uid  = ObjectId(current_user.id)
     tid  = ObjectId(trainer_id)
-    msgs = list(db.messages.find(
+    msgs = list(current_app.config["DB"].messages.find(
         {"client_id": uid, "trainer_id": tid},
         sort=[("created_at", 1)]
     ).limit(100))
     # Mark as read
-    db.messages.update_many(
+    current_app.config["DB"].messages.update_many(
         {"client_id": uid, "trainer_id": tid,
          "direction": "trainer_to_user", "read_by_user": False},
         {"$set": {"read_by_user": True}},
@@ -130,18 +130,18 @@ def user_send_message():
     if trainer_id:
         tid = ObjectId(trainer_id)
     elif recipient:
-        t   = db.trainers.find_one({"username": recipient})
+        t   = current_app.config["DB"].trainers.find_one({"username": recipient})
         tid = t["_id"] if t else None
     else:
         # Default: message own trainer
-        user_doc = db.users.find_one({"_id": uid}) or {}
+        user_doc = current_app.config["DB"].users.find_one({"_id": uid}) or {}
         tid_str  = user_doc.get("trainer_id")
         tid      = ObjectId(tid_str) if tid_str else None
 
     if not tid:
         return jsonify({"error": "Trainer not found"}), 404
 
-    db.messages.insert_one({
+    current_app.config["DB"].messages.insert_one({
         "trainer_id":        tid,
         "client_id":         uid,
         "direction":         "user_to_trainer",
@@ -161,7 +161,7 @@ def search_trainers():
     q = request.args.get("q", "").strip()
     if len(q) < 2:
         return jsonify([])
-    results = list(db.trainers.find(
+    results = list(current_app.config["DB"].trainers.find(
         {"username": {"$regex": q, "$options": "i"}},
         {"username": 1, "avatar_url": 1, "business_name": 1}
     ).limit(6))
@@ -191,9 +191,9 @@ def public_leaderboard():
 
     if tab == "athletes":
         if period == "daily":
-            raw = list(db.scores.find({"date": date_str}).sort("score", -1).limit(10))
+            raw = list(current_app.config["DB"].scores.find({"date": date_str}).sort("score", -1).limit(10))
         else:
-            raw = list(db.scores.aggregate([
+            raw = list(current_app.config["DB"].scores.aggregate([
                 {"$match": {"date": {"$gte": from_date}}},
                 {"$group": {"_id": "$user_id", "score": {"$avg": "$score"}}},
                 {"$sort": {"score": -1}}, {"$limit": 10}
@@ -201,7 +201,7 @@ def public_leaderboard():
         for r in raw:
             u_id = r.get("user_id") or r.get("_id")
             if not u_id: continue
-            u = db.users.find_one({"_id": u_id},
+            u = current_app.config["DB"].users.find_one({"_id": u_id},
                 {"username":1,"avatar_url":1,"city":1,"country":1}) or {}
             if not u.get("username"): continue
             entries.append({
@@ -212,7 +212,7 @@ def public_leaderboard():
                 "score":      round(r.get("score", 0)),
             })
     else:
-        trainers = list(db.trainers.find({},
+        trainers = list(current_app.config["DB"].trainers.find({},
             {"username":1,"business_name":1,"avatar_url":1,"clients":1,"city":1,"country":1}))
         board = []
         for t in trainers:
@@ -221,10 +221,10 @@ def public_leaderboard():
             scores = []
             for cid in cids:
                 if period == "daily":
-                    rec = db.scores.find_one({"user_id": cid, "date": date_str})
+                    rec = current_app.config["DB"].scores.find_one({"user_id": cid, "date": date_str})
                     scores.append(rec["score"] if rec else 0)
                 else:
-                    recs = list(db.scores.find({"user_id": cid, "date": {"$gte": from_date}}))
+                    recs = list(current_app.config["DB"].scores.find({"user_id": cid, "date": {"$gte": from_date}}))
                     scores.append(round(sum(r["score"] for r in recs)/len(recs)) if recs else 0)
             avg = round(sum(scores)/len(scores)) if scores else 0
             board.append({
@@ -248,7 +248,7 @@ def public_leaderboard():
 def trainer_unread():
     if current_user.role != "trainer":
         return jsonify({"count": 0})
-    count = db.messages.count_documents({
+    count = current_app.config["DB"].messages.count_documents({
         "trainer_id":      ObjectId(current_user.id),
         "direction":       "user_to_trainer",
         "read_by_trainer": False,
