@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Trial Expired — AURON{% endblock %}
+{% block content %}
+<div style="max-width:520px;margin:4rem auto;text-align:center;padding:2rem">
+
+  <div style="font-size:3.5rem;margin-bottom:1rem">⏳</div>
+  <h1 style="font-size:1.75rem;font-weight:800;margin-bottom:.6rem">Your free trial has ended</h1>
+  <p style="color:var(--muted);margin-bottom:2rem;line-height:1.7">
+    You've had 2 days to experience AURON. Ready to keep your streak alive?<br/>
+    Subscribe to continue tracking, competing, and growing.
+  </p>
+
+  {# ── Plan selector ── #}
+  <div class="trial-plans">
+    <div class="trial-plan active" data-cycle="monthly" onclick="selectPlan('monthly',this)">
+      <div class="tp-name">Monthly</div>
+      <div class="tp-price">$9.99<span>/mo</span></div>
+      <div class="tp-desc">Billed monthly</div>
+    </div>
+    <div class="trial-plan" data-cycle="quarterly" onclick="selectPlan('quarterly',this)">
+      <div class="tp-badge">Save 20%</div>
+      <div class="tp-name">3 Months</div>
+      <div class="tp-price">$7.99<span>/mo</span></div>
+      <div class="tp-desc">Billed $23.97 every 3 months</div>
+    </div>
+    <div class="trial-plan" data-cycle="annual" onclick="selectPlan('annual',this)">
+      <div class="tp-badge">Best value</div>
+      <div class="tp-name">Annual</div>
+      <div class="tp-price">$7.99<span>/mo</span></div>
+      <div class="tp-desc">Billed $95.88/year</div>
+    </div>
+  </div>
+
+  <a id="subscribeBtn" href="/subscribe?cycle=monthly" class="btn btn-gold btn-lg" style="margin-top:1.5rem;display:inline-block;width:100%;max-width:300px">
+    Subscribe Now →
+  </a>
+
+  <p style="margin-top:1.25rem;font-size:.78rem;color:var(--muted)">
+    Cancel anytime · Secure payment via Paddle<br/>
+    Questions? <a href="mailto:auron@phishnix.site">auron@phishnix.site</a>
+  </p>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function selectPlan(cycle, el) {
+  document.querySelectorAll('.trial-plan').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('subscribeBtn').href = '/subscribe?cycle=' + cycle;
+}
+</script>
+{% endblock %}

@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — AURON{% endblock %}
 {% block content %}
+
+{% if days_left <= 1 and days_left > 0 %}
+<div class="trial-banner">
+  ⚡ Your free trial ends today — <a href="/pricing">Subscribe now</a> to keep your streak alive.
+</div>
+{% endif %}
+
 <div class="page-header">
   <div>
     <h1 class="page-title">Dashboard</h1>
@@ -9,7 +16,6 @@
   <div class="header-badge rank-{{ rank|lower }}">{{ rank }}</div>
 </div>
 
-{# ── Score Ring ── #}
 <div class="score-section">
   <div class="score-ring-wrap">
     <svg class="score-ring" viewBox="0 0 120 120">
@@ -36,13 +42,11 @@
   </div>
 </div>
 
-{# ── Weekly Chart ── #}
 <div class="card">
   <h3 class="card-title">This Week</h3>
   <canvas id="weekChart" height="80"></canvas>
 </div>
 
-{# ── Assigned Programs ── #}
 {% if programs %}
 <div class="card">
   <h3 class="card-title">📋 My Programs</h3>
@@ -59,7 +63,6 @@
 </div>
 {% endif %}
 
-{# ── Today's Goals ── #}
 <h2 class="section-title">Today's Goals</h2>
 <div class="goals-grid">
 
@@ -138,7 +141,6 @@
 
 </div>
 
-{# ── Modals ── #}
 <div class="modal" id="sleepModal">
   <div class="modal-card">
     <h3>Log Sleep</h3>

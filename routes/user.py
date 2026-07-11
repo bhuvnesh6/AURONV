@@ -17,6 +17,8 @@ cloudinary.config(
     api_secret=os.environ.get("CLOUDINARY_API_SECRET"),
 )
 
+TRIAL_DAYS = 2
+
 
 def user_required(f):
     from functools import wraps
@@ -28,11 +30,57 @@ def user_required(f):
     return decorated
 
 
+def check_trial(user_doc):
+    """
+    Returns (is_active: bool, days_left: int).
+    Fake/seed users (is_seed=True) bypass trial entirely.
+    Active subscribers bypass trial.
+    """
+    if user_doc.get("is_seed"):
+        return True, 999
+
+    sub = user_doc.get("subscription", {})
+    if sub.get("status") == "active":
+        return True, 999
+
+    created_at = user_doc.get("created_at")
+    if not created_at:
+        return True, TRIAL_DAYS
+
+    elapsed    = (datetime.utcnow() - created_at).days
+    days_left  = max(TRIAL_DAYS - elapsed, 0)
+    return days_left > 0, days_left
+
+
+def trial_required(f):
+    """Decorator: redirect to trial-expired page if trial is over."""
+    from functools import wraps
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        uid      = ObjectId(current_user.id)
+        user_doc = current_app.config["DB"].users.find_one({"_id": uid}) or {}
+        active, days_left = check_trial(user_doc)
+        if not active:
+            return redirect(url_for("user.trial_expired"))
+        return f(*args, **kwargs)
+    return decorated
+
+
+# ── Trial expired page ────────────────────────────────────────────────────────
+
+@user_bp.route("/trial-expired")
+@login_required
+@user_required
+def trial_expired():
+    return render_template("user/trial_expired.html")
+
+
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 
 @user_bp.route("/dashboard")
 @login_required
 @user_required
+@trial_required
 def dashboard():
     uid    = current_user.id
     score  = calculate_auron_score(uid)
@@ -45,13 +93,18 @@ def dashboard():
         "direction":    "trainer_to_user",
         "read_by_user": False,
     })
-    # Assigned programs
     assigned_programs = list(current_app.config["DB"].assigned_programs.find({"user_id": ObjectId(uid)}))
-    prog_ids  = [a["program_id"] for a in assigned_programs]
-    programs  = list(current_app.config["DB"].programs.find({"_id": {"$in": prog_ids}})) if prog_ids else []
+    prog_ids = [a["program_id"] for a in assigned_programs]
+    programs = list(current_app.config["DB"].programs.find({"_id": {"$in": prog_ids}})) if prog_ids else []
+
+    uid_obj  = ObjectId(uid)
+    user_doc = current_app.config["DB"].users.find_one({"_id": uid_obj}) or {}
+    _, days_left = check_trial(user_doc)
+
     return render_template("user/dashboard.html",
                            score=score, streak=streak, logs=logs,
-                           rank=rank, unread=unread, programs=programs)
+                           rank=rank, unread=unread, programs=programs,
+                           days_left=days_left)
 
 
 # ── Workouts ──────────────────────────────────────────────────────────────────
@@ -59,6 +112,7 @@ def dashboard():
 @user_bp.route("/workouts", methods=["GET", "POST"])
 @login_required
 @user_required
+@trial_required
 def workouts():
     uid = ObjectId(current_user.id)
     if request.method == "POST":
@@ -100,6 +154,7 @@ def workouts():
 @user_bp.route("/nutrition", methods=["GET", "POST"])
 @login_required
 @user_required
+@trial_required
 def nutrition():
     uid      = ObjectId(current_user.id)
     date_str = date.today().strftime("%Y-%m-%d")
@@ -133,6 +188,7 @@ def nutrition():
 @user_bp.route("/water", methods=["POST"])
 @login_required
 @user_required
+@trial_required
 def log_water():
     uid = ObjectId(current_user.id)
     date_str = date.today().strftime("%Y-%m-%d")
@@ -150,6 +206,7 @@ def log_water():
 @user_bp.route("/steps", methods=["POST"])
 @login_required
 @user_required
+@trial_required
 def log_steps():
     uid = ObjectId(current_user.id)
     date_str = date.today().strftime("%Y-%m-%d")
@@ -164,6 +221,7 @@ def log_steps():
 @user_bp.route("/sleep", methods=["POST"])
 @login_required
 @user_required
+@trial_required
 def log_sleep():
     uid = ObjectId(current_user.id)
     date_str = date.today().strftime("%Y-%m-%d")
@@ -181,6 +239,7 @@ def log_sleep():
 @user_bp.route("/inbox")
 @login_required
 @user_required
+@trial_required
 def inbox():
     uid         = ObjectId(current_user.id)
     trainer_ids = current_app.config["DB"].messages.distinct("trainer_id", {"client_id": uid})
@@ -224,6 +283,7 @@ def inbox():
 @user_bp.route("/timeline", methods=["GET", "POST"])
 @login_required
 @user_required
+@trial_required
 def timeline():
     uid = ObjectId(current_user.id)
     if request.method == "POST":
@@ -254,12 +314,12 @@ def timeline():
 @user_bp.route("/leaderboard")
 @login_required
 @user_required
+@trial_required
 def leaderboard():
     scope  = request.args.get("scope",  "global")
     period = request.args.get("period", "daily")
     tab    = request.args.get("tab",    "athletes")
 
-    # Location filter params from cascading selects
     filter_country = request.args.get("floc_country", "").strip()
     filter_state   = request.args.get("floc_state",   "").strip()
     filter_city    = request.args.get("floc_city",    "").strip()
@@ -276,7 +336,6 @@ def leaderboard():
     else:
         from_date = date_str
 
-    # Build geo filter from explicit dropdown values (not user's own profile)
     geo_filter = {}
     if scope == "country" and filter_country:
         geo_filter = {"country": filter_country}
@@ -306,7 +365,6 @@ def leaderboard():
                           if user_doc.get("trainer_id") else None)
             team_ids    = [ObjectId(c) for c in (trainer_doc or {}).get("clients", [])]
             if not team_ids:
-                # No team — return empty immediately
                 return render_template("user/leaderboard.html",
                                        entries=[], scope=scope, period=period,
                                        tab=tab, user_doc=user_doc,
@@ -315,16 +373,14 @@ def leaderboard():
                                        filter_city=filter_city)
             pipeline[0]["$match"]["user_id"] = {"$in": team_ids}
 
-        raw = list(current_app.config["DB"].scores.aggregate(pipeline))
+        raw  = list(current_app.config["DB"].scores.aggregate(pipeline))
         rank = 0
         for r in raw:
             u_id = r.get("_id") or r.get("user_id")
-            if not u_id:
-                continue
+            if not u_id: continue
             u = current_app.config["DB"].users.find_one({"_id": u_id},
                     {"username": 1, "avatar_url": 1, "city": 1, "country": 1}) or {}
-            if not u.get("username"):
-                continue  # skip orphaned score records
+            if not u.get("username"): continue
             rank += 1
             is_me = str(u_id) == str(uid)
             entries.append({
@@ -337,7 +393,6 @@ def leaderboard():
                 "is_me":      is_me,
             })
 
-        # Ensure current user appears even if not in top 50
         me_in_list = any(e["is_me"] for e in entries)
         if not me_in_list:
             my_score = calculate_auron_score(str(uid))
@@ -351,8 +406,7 @@ def leaderboard():
                 "is_me":      True,
                 "not_ranked": True,
             })
-
-    else:  # trainers tab
+    else:
         trainers = list(current_app.config["DB"].trainers.find({},
             {"username": 1, "business_name": 1, "avatar_url": 1,
              "clients": 1, "city": 1, "country": 1, "state": 1}))
@@ -361,9 +415,8 @@ def leaderboard():
             if scope == "country" and t.get("country") != user_doc.get("country"): continue
             if scope == "state"   and t.get("state")   != user_doc.get("state"):   continue
             if scope == "city"    and t.get("city")     != user_doc.get("city"):    continue
-            cids   = [ObjectId(c) for c in t.get("clients", [])]
-            if not cids:
-                continue
+            cids = [ObjectId(c) for c in t.get("clients", [])]
+            if not cids: continue
             scores = []
             for cid in cids:
                 if period == "daily":
@@ -424,8 +477,10 @@ def profile():
     score    = calculate_auron_score(current_user.id)
     streak   = get_streak(current_user.id)
     rank     = get_rank_label(score)
+    _, days_left = check_trial(user_doc)
     return render_template("user/profile.html",
-                           user=user_doc, score=score, streak=streak, rank=rank)
+                           user=user_doc, score=score, streak=streak,
+                           rank=rank, days_left=days_left)
 
 
 @user_bp.route("/profile/avatar", methods=["POST"])

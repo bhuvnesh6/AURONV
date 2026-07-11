@@ -1812,3 +1812,55 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
   padding: .65rem 1rem;
   display: inline-block;
 }
+
+/* ════════════════════════════════════════════
+   TRIAL SYSTEM
+   ════════════════════════════════════════════ */
+
+.trial-banner {
+  background: rgba(212,175,55,.1);
+  border: 1px solid rgba(212,175,55,.35);
+  border-radius: var(--radius-sm);
+  padding: .65rem 1rem;
+  font-size: .85rem;
+  margin-bottom: 1.25rem;
+  color: var(--gold);
+}
+.trial-banner a { color: var(--gold); font-weight: 700; text-decoration: underline; }
+
+.trial-plans {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: .75rem;
+  margin: 1.5rem 0 .5rem;
+}
+.trial-plan {
+  position: relative;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.1rem .9rem;
+  cursor: pointer;
+  transition: border-color .15s, transform .15s;
+  text-align: center;
+}
+.trial-plan:hover  { border-color: #444; transform: translateY(-2px); }
+.trial-plan.active { border-color: var(--gold); background: rgba(212,175,55,.06); }
+
+.tp-badge {
+  position: absolute;
+  top: -11px; left: 50%; transform: translateX(-50%);
+  background: var(--gold); color: #000;
+  font-size: .65rem; font-weight: 800;
+  padding: .15rem .7rem; border-radius: 999px;
+  letter-spacing: .05em; text-transform: uppercase;
+  white-space: nowrap;
+}
+.tp-name  { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: .3rem; }
+.tp-price { font-size: 1.4rem; font-weight: 800; }
+.tp-price span { font-size: .75rem; font-weight: 400; color: var(--muted); }
+.tp-desc  { font-size: .7rem; color: var(--muted); margin-top: .25rem; line-height: 1.4; }
+
+@media (max-width:480px) {
+  .trial-plans { grid-template-columns: 1fr; }
+}

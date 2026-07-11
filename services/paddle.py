@@ -22,7 +22,7 @@ PADDLE_PRICE_ID_QUARTERLY = os.environ.get("PADDLE_PRICE_ID_QUARTERLY", "")
 PADDLE_PRICE_ID_ANNUAL    = os.environ.get("PADDLE_PRICE_ID_ANNUAL", "")
 
 # Sandbox vs Production
-PADDLE_ENV = os.environ.get("PADDLE_ENV", "sandbox")  # "sandbox" or "production"
+PADDLE_ENV = os.environ.get("PADDLE_ENV", "production")  # "sandbox" or "production"
 BASE_URL   = (
     "https://api.paddle.com"
     if PADDLE_ENV == "production"
