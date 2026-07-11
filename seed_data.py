@@ -103,10 +103,8 @@ def rand_username(first, last):
 
 
 def fake_password_hash():
-    # bcrypt hash of "Password123!" — all seed accounts share same pass
-    from flask_bcrypt import Bcrypt
-    b = Bcrypt()
-    return b.generate_password_hash("SeedPass123!").decode("utf-8")
+    import bcrypt
+    return bcrypt.hashpw("SeedPass123!".encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 _pw_hash = None
