@@ -59,9 +59,12 @@ def subscribe():
             success_url = f"{APP_URL}/billing/success",
             cancel_url  = f"{APP_URL}/billing/cancel",
         )
-        checkout_url = result.get("data", {}).get("url", "")
+        data         = result.get("data", {})
+        # Paddle returns checkout URL at data.checkout.url
+        checkout_url = (data.get("checkout", {}).get("url", "")
+                        or data.get("url", ""))
         if not checkout_url:
-            raise ValueError("No checkout URL returned")
+            raise ValueError(f"No checkout URL in Paddle response: {result}")
         return redirect(checkout_url)
 
     except Exception as e:

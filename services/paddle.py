@@ -22,7 +22,7 @@ PADDLE_PRICE_ID_QUARTERLY = os.environ.get("PADDLE_PRICE_ID_QUARTERLY", "")
 PADDLE_PRICE_ID_ANNUAL    = os.environ.get("PADDLE_PRICE_ID_ANNUAL", "")
 
 # Sandbox vs Production
-PADDLE_ENV = os.environ.get("PADDLE_ENV", "production")  # "sandbox" or "production"
+PADDLE_ENV = os.environ.get("PADDLE_ENV", "sandbox")  # "sandbox" or "production"
 BASE_URL   = (
     "https://api.paddle.com"
     if PADDLE_ENV == "production"
@@ -42,15 +42,16 @@ def _headers():
 def create_checkout(price_id: str, user_email: str, user_id: str,
                     success_url: str, cancel_url: str) -> dict:
     """
-    Create a Paddle checkout session.
-    Returns the full response dict including checkout.url to redirect the user.
+    Create a Paddle transaction and return checkout URL.
+    Paddle live API: checkout URL is at data.checkout.url
     """
     payload = {
         "items": [{"price_id": price_id, "quantity": 1}],
         "customer": {"email": user_email},
         "custom_data": {"user_id": user_id},
-        "success_url": success_url,
-        "cancel_url":  cancel_url,
+        "checkout": {
+            "url": success_url,
+        },
     }
     r = http_requests.post(f"{BASE_URL}/transactions", headers=_headers(),
                            json=payload, timeout=10)
